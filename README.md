@@ -35,32 +35,43 @@ This should return you the current interpreter.
 
 A symbolic link / directory junction should be made to the directory containing the installed plugins pointing to the dev plugin package.
 
-On Windows Command promt
+#### On Windows Command promt
+
+:warning: STILL NOT CONFIGURED
+
 ```console
 mklink /J %AppData%\QGIS\QGIS3\profiles\default\python\plugins\planscape .\planscape
 ```
 
-On Windows PowerShell
+#### On Windows PowerShell
+
+:warning: STILL NOT CONFIGURED
+
 ```console
 New-Item -ItemType SymbolicLink -Path ${env:APPDATA}\QGIS\QGIS3\profiles\default\python\plugins\planscape -Value ${pwd}\planscape
 ```
 
-On Linux
-```console
-ln -s planscape/ ~/.local/share/QGIS/QGIS3/profiles/default/python/plugins/planscape
-```
+#### On Linux
 
-After that you should be able to enable the plugin in the QGIS Plugin Manager.
+do:
 
-### VsCode setup
+1. `make install-plugin`
+2. Open up QGIS
+3. Go to Plugins > Manage and Install Plugins
+4. Go to Settings
+5. Mark "Show also Experimental Plugins"
+6. Go to Installed tab
+7. Search for `Planscape`
+8. Activate the plugin
+9. The `Planscape` plugin should be available under the Plugins menu.
 
-On VS Code use the workspace [qgis-planscape-plugin.code-workspace](qgis-planscape-plugin.code-workspace).
-The workspace contains all the settings and extensions needed for development.
+#### Useful stuff
 
-Select the Python interpreter with Command Palette (Ctrl+Shift+P). Select `Python: Select Interpreter` and choose
-the one with the path `.venv\Scripts\python.exe`.
+1. Install a plugin called `Plugin Reloader`
+2. Enable it
 
-## License
-This plugin is distributed under the terms of the [GNU General Public License, version 2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html) license.
+This plugin will enable you to configure a plugin for reloading. This is very
+useful during testing, where you will often have to reload the the plugin for checking
+if your changes are ok.
 
-See [LICENSE](LICENSE) for more information.
+Just reload the plugin without the need to close/open QGIS.
