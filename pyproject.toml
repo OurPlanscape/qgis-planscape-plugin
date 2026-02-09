@@ -1,11 +1,19 @@
+[project]
+name = "qgis-planscape-plugin"
+version = "0.1.0"
+description = "QGIS Planscape Plugin"
+requires-python = ">=3.12"
+dependencies = []
+
 [tool.pytest.ini_options]
 addopts = "-v"
+norecursedirs = ["planscape/qgis_plugin_tools"]
 
 [tool.coverage.report]
 omit = ["planscape/qgis_plugin_tools/*"]
 
 [tool.ruff]
-target-version = "py38"
+target-version = "py312"
 extend = "ruff_defaults.toml"
 
 
@@ -25,3 +33,17 @@ ignore_errors = true
 [[tool.mypy.overrides]]
 module = ["qgis.*", "osgeo.*"]
 ignore_missing_imports = true
+
+[dependency-groups]
+dev = [
+    "debugpy>=1.8.20",
+    "flake8>=7.3.0",
+    "flake8-qgis>=1.1.0",
+    "mypy>=1.19.1",
+    "pyqt5-stubs>=5.15.6.0",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "pytest-qgis>=2.1.0",
+    "qgis-venv-creator>=0.1.0",
+    "ruff>=0.15.0",
+]

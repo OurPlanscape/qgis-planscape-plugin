@@ -9,14 +9,27 @@
 
 ## Development
 
-Create a virtual environment activate it and install needed dependencies with the following commands:
-```console
-python create_qgis_venv.py
-.venv\Scripts\activate # On Linux and macOS run `source .venv\bin\activate`
-pip install -r requirements-dev.txt
+Install your virtualenv with:
+
+* `uv venv .venv --python /usr/bin/python3 --system-site-packages`
+
+This will create a virtualenv, inside your project folder, with your QGIS Python interpreter
+and using system-site-packages. You might need to replace `/usr/bin/python3` with your current QGIS
+Python interpreter.
+
+### Figuring out your Python3 interpreter
+
+1. open qgis
+2. Hit `Ctrl+Alt+P`
+3. This will open up the python console inside QGIS
+4. Type in:
+
+```
+import sys
+print(sys.executable)
 ```
 
-For more detailed development instructions see [development](docs/development.md).
+This should return you the current interpreter.
 
 ### Testing the plugin on QGIS
 
