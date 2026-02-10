@@ -1,15 +1,23 @@
 from __future__ import annotations
 
-from typing import Callable
+from typing import TYPE_CHECKING
 
+from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QCoreApplication, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QWidget
 from qgis.utils import iface
 
-from planscape.qgis_plugin_tools.tools.custom_logging import setup_logger, teardown_logger
+from planscape.processing.provider import PlanscapeProcessingProvider
+from planscape.qgis_plugin_tools.tools.custom_logging import (
+    setup_logger,
+    teardown_logger,
+)
 from planscape.qgis_plugin_tools.tools.i18n import setup_translation
 from planscape.qgis_plugin_tools.tools.resources import plugin_name
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 class Plugin:
@@ -32,6 +40,7 @@ class Plugin:
 
         self.actions: list[QAction] = []
         self.menu = Plugin.name
+        self.processing_provider = PlanscapeProcessingProvider()
 
     def add_action(
         self,
@@ -102,6 +111,7 @@ class Plugin:
 
     def initGui(self) -> None:  # noqa N802
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
+        QgsApplication.processingRegistry().addProvider(self.processing_provider)
         self.add_action(
             "",
             text=Plugin.name,
@@ -115,6 +125,7 @@ class Plugin:
 
     def unload(self) -> None:
         """Removes the plugin menu item and icon from QGIS GUI."""
+        QgsApplication.processingRegistry().removeProvider(self.processing_provider)
         for action in self.actions:
             iface.removePluginMenu(Plugin.name, action)
             iface.removeToolBarIcon(action)

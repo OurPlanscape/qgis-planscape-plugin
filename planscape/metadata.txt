@@ -12,5 +12,6 @@ repository=https://github.com/OurPlanscape/qgis-planscape-plugin
 tracker=https://github.com/OurPlanscape/qgis-planscape-plugin/issues
 homepage=https://github.com/OurPlanscape/qgis-planscape-plugin
 category=Plugins
+hasProcessingProvider=True
 experimental=True
 deprecated=False

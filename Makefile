@@ -4,10 +4,13 @@ PLUGIN_NAME ?= planscape
 PLUGIN_SOURCE ?= $(CURDIR)/$(PLUGIN_NAME)
 PLUGIN_TARGET ?= $(QGIS_PLUGINS_DIR)/$(PLUGIN_NAME)
 
-.PHONY: test install-plugin
+.PHONY: test lint install-plugin
 
 test:
 	uv run --group dev pytest -v
+
+lint:
+	uv run ruff check .
 
 install-plugin:
 	mkdir -p "$(QGIS_PLUGINS_DIR)"
