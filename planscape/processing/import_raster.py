@@ -1,28 +1,32 @@
-from typing import Any
+from typing import Any, Optional
 
-from qgis.core import QgsProcessingAlgorithm, QgsProcessingContext, QgsProcessingFeedback
+from qgis.core import (
+    QgsProcessingAlgorithm,
+    QgsProcessingContext,
+    QgsProcessingFeedback,
+)
 
 
-class PlanscapeSkeletonAlgorithm(QgsProcessingAlgorithm):
+class ImportRasterAlgorithm(QgsProcessingAlgorithm):
     def name(self) -> str:
-        return "skeleton_algorithm"
+        return "import_raster"
 
     def displayName(self) -> str:  # noqa: N802
-        return "Skeleton Algorithm"
+        return "Import Raster"
 
     def group(self) -> str:
-        return "Planscape"
+        return "Import"
 
     def groupId(self) -> str:  # noqa: N802
-        return "planscape"
+        return "import"
 
     def shortHelpString(self) -> str:  # noqa: N802
-        return "Bare-bones processing algorithm skeleton."
+        return "Imports one or more rasters into Planscape"
 
     def createInstance(self) -> QgsProcessingAlgorithm:  # noqa: N802
-        return PlanscapeSkeletonAlgorithm()
+        return ImportRasterAlgorithm()
 
-    def initAlgorithm(self, config: dict[str, Any] | None = None) -> None:  # noqa: N802, ARG002
+    def initAlgorithm(self, configuration: Optional[dict[str, Any]] = None) -> None:  # noqa: N802, ARG002
         # Intentionally empty: no parameters and no outputs.
         return
 
@@ -30,8 +34,7 @@ class PlanscapeSkeletonAlgorithm(QgsProcessingAlgorithm):
         self,
         parameters: dict[str, Any],  # noqa: ARG002
         context: QgsProcessingContext,  # noqa: ARG002
-        feedback: QgsProcessingFeedback,  # noqa: ARG002
+        feedback: Optional[QgsProcessingFeedback],  # noqa: ARG002
     ) -> dict[str, Any]:
         # Intentionally empty: returns no outputs.
         return {}
-

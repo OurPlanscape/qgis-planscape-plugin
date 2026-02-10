@@ -1,11 +1,11 @@
 from qgis.core import QgsProcessingProvider
 
-from planscape.processing.skeleton_algorithm import PlanscapeSkeletonAlgorithm
+from planscape.processing.import_raster import ImportRasterAlgorithm
 
 
 class PlanscapeProcessingProvider(QgsProcessingProvider):
     def loadAlgorithms(self) -> None:  # noqa: N802
-        self.addAlgorithm(PlanscapeSkeletonAlgorithm())
+        self.addAlgorithm(ImportRasterAlgorithm())
 
     def id(self) -> str:
         return "planscape"
@@ -15,4 +15,3 @@ class PlanscapeProcessingProvider(QgsProcessingProvider):
 
     def longName(self) -> str:  # noqa: N802
         return self.name()
-
