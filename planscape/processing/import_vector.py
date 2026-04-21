@@ -9,12 +9,12 @@ from qgis.core import (
 from planscape.auth import ensure_authenticated
 
 
-class ImportRasterAlgorithm(QgsProcessingAlgorithm):
+class ImportVectorAlgorithm(QgsProcessingAlgorithm):
     def name(self) -> str:
-        return "import_raster"
+        return "import_vector"
 
     def displayName(self) -> str:  # noqa: N802
-        return "Import Raster"
+        return "Import Vector"
 
     def group(self) -> str:
         return "Import"
@@ -23,10 +23,10 @@ class ImportRasterAlgorithm(QgsProcessingAlgorithm):
         return "import"
 
     def shortHelpString(self) -> str:  # noqa: N802
-        return "Imports one or more rasters into Planscape"
+        return "Imports one or more vectors into Planscape"
 
     def createInstance(self) -> QgsProcessingAlgorithm:  # noqa: N802
-        return ImportRasterAlgorithm()
+        return ImportVectorAlgorithm()
 
     def initAlgorithm(self, configuration: Optional[dict[str, Any]] = None) -> None:  # noqa: N802, ARG002
         # Intentionally empty: no parameters and no outputs.

@@ -8,6 +8,7 @@ from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QWidget
 from qgis.utils import iface
 
+from planscape.gui.auth_dialog import AuthDialog
 from planscape.processing.provider import PlanscapeProcessingProvider
 from planscape.qgis_plugin_tools.tools.custom_logging import (
     setup_logger,
@@ -133,4 +134,5 @@ class Plugin:
 
     def run(self) -> None:
         """Run method that performs all the real work"""
-        print("Hello QGIS plugin")  # noqa: T201
+        dialog = AuthDialog(parent=iface.mainWindow())
+        dialog.exec()
