@@ -16,8 +16,8 @@ jobs:
     strategy:
       matrix:
         # Test against the supported QGIS release line.
-        docker_tags: [release-3_36, '3.40', '3.44', '4.0']
-      fail-fast: false
+        docker_tags: ['3.40', '3.44', '4.0']
+        fail-fast: false
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -63,12 +63,33 @@ jobs:
       - name: Run tests
         shell: pwsh
         run: |
-          $qgisBat = (Get-Command python-qgis-ltr.bat).Source
+          $qgisRoots = @(
+            'C:\ProgramData\chocolatey\bin',
+            'C:\OSGeo4W\bin',
+            'C:\OSGeo4W64\bin',
+            'C:\Program Files'
+          ) | Where-Object { Test-Path $_ }
+
+          $qgisBat = $null
+          foreach ($root in $qgisRoots) {
+            $candidate = Get-ChildItem -Path $root -Filter 'python-qgis*.bat' -File -Recurse -ErrorAction SilentlyContinue |
+              Sort-Object FullName |
+              Select-Object -First 1
+            if ($candidate) {
+              $qgisBat = $candidate.FullName
+              break
+            }
+          }
+
+          if (-not $qgisBat) {
+            throw "Could not locate a python-qgis launcher under: $($qgisRoots -join ', ')"
+          }
+
           $env:PATH = "$(Split-Path $qgisBat);$env:PATH"
           $env:QGIS_PLUGIN_IN_CI=1
 
-          python-qgis-ltr.bat -m pip install -qr requirements-dev.txt
-          python-qgis-ltr.bat -m pytest -v
+          & $qgisBat -m pip install -qr requirements-dev.txt
+          & $qgisBat -m pytest -v
 
   pre-release:
     name: "Pre Release"
