@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+from typing import TypeVar
 
-from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsProcessingException
-
+from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsProcessingException, QgsSettings
 from planscape.qgis_plugin_tools.tools.network import post
 from planscape.qgis_plugin_tools.tools.resources import plugin_name
-from planscape.qgis_plugin_tools.tools.settings import get_setting, set_setting
+
+T = TypeVar("T")
 
 ENVIRONMENT_URLS: dict[str, str] = {
     "dev": "https://dev.planscape.org/planscape-backend",
@@ -23,6 +24,17 @@ EMAIL_SETTING_KEY = "auth/email"
 CREDENTIALS_AUTHCFG_KEY = "auth/credentials_authcfg"
 TOKEN_AUTHCFG_KEY = "auth/token_authcfg"  # noqa: S105
 AUTH_REQUIRED_MESSAGE = "Planscape authentication is required. Open the Planscape plugin and sign in first."
+
+
+def get_setting(key: str, default: T, expected_type: type[T]) -> T:
+    value = QgsSettings().value(f"{plugin_name()}/{key}", default)
+    if value is None:
+        return default
+    return expected_type(value)
+
+
+def set_setting(key: str, value: object) -> None:
+    QgsSettings().setValue(f"{plugin_name()}/{key}", value)
 
 
 class PlanscapeAuthError(Exception):
@@ -197,4 +209,6 @@ def _save_auth_config(config: QgsAuthMethodConfig, authcfg_id: str) -> str:
     if not ok or not stored_config.id():
         message = "Could not save the Planscape credentials to QGIS."
         raise PlanscapeAuthError(message)
+    return stored_config.id()
+    return stored_config.id()
     return stored_config.id()

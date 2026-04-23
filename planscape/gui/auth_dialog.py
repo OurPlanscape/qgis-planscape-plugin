@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtWidgets import QApplication, QDialog, QWidget
-
-from planscape import auth
 from planscape.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from planscape.qgis_plugin_tools.tools.messages import MessageBarLogger
 from planscape.qgis_plugin_tools.tools.resources import load_ui, plugin_name
+
+from planscape import auth
 
 FORM_CLASS: QWidget
 FORM_CLASS = load_ui("auth_dialog.ui")

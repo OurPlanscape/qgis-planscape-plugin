@@ -1,12 +1,12 @@
 import pytest
 from qgis.core import QgsProcessingException, QgsSettings
 from qgis.PyQt.QtWidgets import QLineEdit
+from planscape.qgis_plugin_tools.tools.resources import plugin_name
 
 from planscape import auth
 from planscape.gui.auth_dialog import AuthDialog
 from planscape.processing.import_raster import ImportRasterAlgorithm
 from planscape.processing.import_vector import ImportVectorAlgorithm
-from planscape.qgis_plugin_tools.tools.resources import plugin_name
 
 
 def _clear_auth_settings() -> None:

@@ -5,20 +5,17 @@ description = "QGIS Planscape Plugin"
 requires-python = ">=3.12"
 dependencies = [
     "qgis-plugin-dev-tools>=0.12.0",
-    "qgis-plugin-tools>=1.0.0",
 ]
 
 [tool.pytest.ini_options]
 addopts = "-v"
 norecursedirs = ["planscape/qgis_plugin_tools"]
-
 [tool.coverage.report]
 omit = ["planscape/qgis_plugin_tools/*"]
 
 [tool.ruff]
 target-version = "py312"
 extend = "ruff_defaults.toml"
-
 
 exclude = ["planscape/qgis_plugin_tools"]
 
@@ -54,5 +51,4 @@ dev = [
 ]
 
 [tool.qgis_plugin_dev_tools]
-plugin_package_name = "planscape"
-runtime_requires = ["qgis_plugin_dev_tools"]
+plugin_package_name = "your_plugin_package_name"

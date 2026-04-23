@@ -7,15 +7,12 @@ from qgis.PyQt.QtCore import QCoreApplication, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QWidget
 from qgis.utils import iface
+from planscape.qgis_plugin_tools.tools.custom_logging import setup_logger, teardown_logger
+from planscape.qgis_plugin_tools.tools.i18n import setup_translation
+from planscape.qgis_plugin_tools.tools.resources import plugin_name
 
 from planscape.gui.auth_dialog import AuthDialog
 from planscape.processing.provider import PlanscapeProcessingProvider
-from planscape.qgis_plugin_tools.tools.custom_logging import (
-    setup_logger,
-    teardown_logger,
-)
-from planscape.qgis_plugin_tools.tools.i18n import setup_translation
-from planscape.qgis_plugin_tools.tools.resources import plugin_name
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -135,4 +132,5 @@ class Plugin:
     def run(self) -> None:
         """Run method that performs all the real work"""
         dialog = AuthDialog(parent=iface.mainWindow())
+        dialog.exec()
         dialog.exec()

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import glob
 
-from qgis_plugin_tools.infrastructure.plugin_maker import PluginMaker
+from planscape.qgis_plugin_tools.infrastructure.plugin_maker import PluginMaker
 
 """
 #################################################
