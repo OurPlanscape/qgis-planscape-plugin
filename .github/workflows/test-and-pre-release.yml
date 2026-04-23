@@ -14,10 +14,10 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         # Test against the supported QGIS release line.
         docker_tags: ['3.40', '3.44', '4.0']
-        fail-fast: false
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
