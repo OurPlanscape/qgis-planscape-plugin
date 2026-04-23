@@ -54,6 +54,7 @@ class AuthDialog(QDialog, FORM_CLASS):
             f"Signed in to the {environment} environment.",
             success=True,
         )
+        self.accept()
 
     def _sign_out(self) -> None:
         auth.sign_out()

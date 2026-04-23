@@ -3,12 +3,12 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from qgis.core import QgsApplication
-from qgis.PyQt.QtCore import QCoreApplication, QTranslator
+from qgis.PyQt.QtCore import QCoreApplication, Qt, QTranslator
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QWidget
 from qgis.utils import iface
 
-from planscape.gui.auth_dialog import AuthDialog
+from planscape.gui.planscape_dock import PlanscapeDockWidget
 from planscape.processing.provider import PlanscapeProcessingProvider
 from planscape.qgis_plugin_tools.tools.custom_logging import setup_logger, teardown_logger
 from planscape.qgis_plugin_tools.tools.i18n import setup_translation
@@ -39,6 +39,7 @@ class Plugin:
         self.actions: list[QAction] = []
         self.menu = Plugin.name
         self.processing_provider = PlanscapeProcessingProvider()
+        self.dock_widget: PlanscapeDockWidget | None = None
 
     def add_action(
         self,
@@ -110,6 +111,9 @@ class Plugin:
     def initGui(self) -> None:  # noqa N802
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
         QgsApplication.processingRegistry().addProvider(self.processing_provider)
+        self.dock_widget = PlanscapeDockWidget(parent=iface.mainWindow())
+        iface.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dock_widget)
+        self.dock_widget.focus_panel()
         self.add_action(
             "",
             text=Plugin.name,
@@ -124,6 +128,10 @@ class Plugin:
     def unload(self) -> None:
         """Removes the plugin menu item and icon from QGIS GUI."""
         QgsApplication.processingRegistry().removeProvider(self.processing_provider)
+        if self.dock_widget is not None:
+            iface.removeDockWidget(self.dock_widget)
+            self.dock_widget.deleteLater()
+            self.dock_widget = None
         for action in self.actions:
             iface.removePluginMenu(Plugin.name, action)
             iface.removeToolBarIcon(action)
@@ -131,6 +139,7 @@ class Plugin:
 
     def run(self) -> None:
         """Run method that performs all the real work"""
-        dialog = AuthDialog(parent=iface.mainWindow())
-        dialog.exec()
-        dialog.exec()
+        if self.dock_widget is None:
+            self.dock_widget = PlanscapeDockWidget(parent=iface.mainWindow())
+            iface.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, self.dock_widget)
+        self.dock_widget.focus_panel()
