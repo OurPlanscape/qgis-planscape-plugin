@@ -5,7 +5,7 @@ from planscape.processing.import_vector import ImportVectorAlgorithm
 
 
 class PlanscapeProcessingProvider(QgsProcessingProvider):
-    def loadAlgorithms(self) -> None:  # noqa: N802
+    def loadAlgorithms(self) -> None:
         self.addAlgorithm(ImportRasterAlgorithm())
         self.addAlgorithm(ImportVectorAlgorithm())
 
@@ -15,5 +15,5 @@ class PlanscapeProcessingProvider(QgsProcessingProvider):
     def name(self) -> str:
         return "Planscape"
 
-    def longName(self) -> str:  # noqa: N802
+    def longName(self) -> str:
         return self.name()

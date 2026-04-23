@@ -14,15 +14,15 @@ def test_plugin_init_gui_creates_and_shows_dock(monkeypatch):
     state = {"added_provider": False, "added_dock": None, "shown": False}
 
     class FakeRegistry:
-        def addProvider(self, provider):  # noqa: N802
+        def addProvider(self, provider):
             state["added_provider"] = provider is not None
 
-        def removeProvider(self, provider):  # noqa: N802
+        def removeProvider(self, provider):
             del provider
 
     class FakeQgsApplication:
         @staticmethod
-        def processingRegistry():  # noqa: N802
+        def processingRegistry():
             return FakeRegistry()
 
     class FakeDock:
@@ -36,13 +36,13 @@ def test_plugin_init_gui_creates_and_shows_dock(monkeypatch):
         def __init__(self):
             self.window = QWidget()
 
-        def mainWindow(self):  # noqa: N802
+        def mainWindow(self):
             return self.window
 
-        def addDockWidget(self, area, widget):  # noqa: N802
+        def addDockWidget(self, area, widget):
             state["added_dock"] = (area, widget)
 
-        def addPluginToMenu(self, menu, action):  # noqa: N802
+        def addPluginToMenu(self, menu, action):
             del menu, action
 
     monkeypatch.setattr("planscape.plugin.QgsApplication", FakeQgsApplication)
@@ -78,30 +78,30 @@ def test_plugin_unload_removes_dock(monkeypatch):
     state = {"removed_provider": False, "removed_dock": None, "menu_removed": 0, "toolbar_removed": 0}
 
     class FakeRegistry:
-        def addProvider(self, provider):  # noqa: N802
+        def addProvider(self, provider):
             del provider
 
-        def removeProvider(self, provider):  # noqa: N802
+        def removeProvider(self, provider):
             state["removed_provider"] = provider is not None
 
     class FakeQgsApplication:
         @staticmethod
-        def processingRegistry():  # noqa: N802
+        def processingRegistry():
             return FakeRegistry()
 
     class FakeDock:
-        def deleteLater(self):  # noqa: N802
+        def deleteLater(self):
             return None
 
     class FakeIface:
-        def removeDockWidget(self, widget):  # noqa: N802
+        def removeDockWidget(self, widget):
             state["removed_dock"] = widget
 
-        def removePluginMenu(self, menu, action):  # noqa: N802
+        def removePluginMenu(self, menu, action):
             del menu, action
             state["menu_removed"] += 1
 
-        def removeToolBarIcon(self, action):  # noqa: N802
+        def removeToolBarIcon(self, action):
             del action
             state["toolbar_removed"] += 1
 
@@ -176,7 +176,7 @@ def test_planscape_dock_click_login_opens_auth_and_refreshes(qgis_app, monkeypat
     dock = PlanscapeDockWidget()
     item = dock.tree.topLevelItem(0)
 
-    dock._handle_item_clicked(item, 0)  # noqa
+    dock._handle_item_clicked(item, 0)
 
     assert state["executed"] is True
     assert dock.tree.topLevelItem(0).text(0) == "Planscape (staging)"
@@ -192,7 +192,7 @@ def test_planscape_dock_workspaces_context_menu_has_add_action(qgis_app, monkeyp
         def __init__(self, parent=None):
             del parent
 
-        def addAction(self, action):  # noqa: N802
+        def addAction(self, action):
             captured["actions"].append(action.text())
 
         def exec(self, position):
@@ -206,9 +206,30 @@ def test_planscape_dock_workspaces_context_menu_has_add_action(qgis_app, monkeyp
     dock.show()
     workspaces_rect = dock.tree.visualItemRect(dock.tree.topLevelItem(0).child(0))
 
-    dock._show_context_menu(workspaces_rect.center())  # noqa
+    dock._show_context_menu(workspaces_rect.center())
 
-    assert captured["actions"] == ["Add workspace"]
+    assert captured["actions"] == ["Create new Workspace"]
+
+
+def test_planscape_dock_add_workspace_opens_workspace_dialog(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    state = {"executed": False}
+
+    class FakeDialog:
+        def __init__(self, parent=None):
+            del parent
+
+        def exec(self):
+            state["executed"] = True
+
+    monkeypatch.setattr("planscape.gui.planscape_dock.WorkspaceDialog", FakeDialog)
+
+    dock = PlanscapeDockWidget()
+
+    dock._add_workspace()
+
+    assert state["executed"] is True
 
 
 def test_planscape_dock_root_context_menu_has_auth_actions_in_order(qgis_app, monkeypatch):
@@ -220,7 +241,7 @@ def test_planscape_dock_root_context_menu_has_auth_actions_in_order(qgis_app, mo
         def __init__(self, parent=None):
             del parent
 
-        def addAction(self, action):  # noqa: N802
+        def addAction(self, action):
             captured["actions"].append(action.text())
 
         def exec(self, position):
@@ -234,7 +255,7 @@ def test_planscape_dock_root_context_menu_has_auth_actions_in_order(qgis_app, mo
     dock.show()
     root_rect = dock.tree.visualItemRect(dock.tree.topLevelItem(0))
 
-    dock._show_context_menu(root_rect.center())  # noqa
+    dock._show_context_menu(root_rect.center())
 
     assert captured["actions"] == ["Login another env", "Logout"]
 
@@ -262,7 +283,7 @@ def test_planscape_dock_login_another_env_signs_out_opens_auth_and_refreshes(qgi
 
     dock = PlanscapeDockWidget()
 
-    dock._login_another_env()  # noqa
+    dock._login_another_env()
 
     assert state["sign_out_calls"] == 1
     assert state["dialog_exec"] == 1
@@ -284,15 +305,8 @@ def test_planscape_dock_logout_signs_out_and_refreshes(qgis_app, monkeypatch):
 
     dock = PlanscapeDockWidget()
 
-    dock._logout()  # noqa
+    dock._logout()
 
     assert state["sign_out_calls"] == 1
-    assert dock.tree.topLevelItem(0).text(0) == "Click to login"
-    assert dock.tree.topLevelItem(0).text(0) == "Click to login"
-    assert dock.tree.topLevelItem(0).text(0) == "Click to login"
-    assert dock.tree.topLevelItem(0).text(0) == "Click to login"
-    assert dock.tree.topLevelItem(0).text(0) == "Click to login"
-    assert dock.tree.topLevelItem(0).text(0) == "Click to login"
-    assert dock.tree.topLevelItem(0).text(0) == "Click to login"
     assert dock.tree.topLevelItem(0).text(0) == "Click to login"
     assert dock.tree.topLevelItem(0).text(0) == "Click to login"

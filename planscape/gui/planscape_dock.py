@@ -6,6 +6,7 @@ from qgis.utils import iface
 
 from planscape import auth
 from planscape.gui.auth_dialog import AuthDialog
+from planscape.gui.workspace_dialog import WorkspaceDialog
 
 ROOT_NODE_KIND = "root"
 WORKSPACES_NODE_KIND = "workspaces"
@@ -89,7 +90,7 @@ class PlanscapeDockWidget(QDockWidget):
         return 0
 
     def _add_workspace_action(self) -> QAction:
-        action = QAction("Add workspace", self.tree)
+        action = QAction("Create new Workspace", self.tree)
         action.triggered.connect(self._add_workspace)
         return action
 
@@ -104,8 +105,8 @@ class PlanscapeDockWidget(QDockWidget):
         return action
 
     def _add_workspace(self) -> None:
-        # TODO: open the add-workspace flow once the UI and API contract are defined.
-        return None
+        dialog = WorkspaceDialog(parent=iface.mainWindow())
+        dialog.exec()
 
     def _login_another_env(self) -> None:
         auth.sign_out()
