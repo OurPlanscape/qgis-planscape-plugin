@@ -113,12 +113,12 @@ jobs:
           TARGET: ${{ github.sha }}
           TITLE: Development Build made for PR #${{ github.event.number }}
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release delete "$TAG" --yes
+          if gh release view "$TAG" --repo "$REPOSITORY" >/dev/null 2>&1; then
+            gh release delete "$TAG" --repo "$REPOSITORY" --yes
           fi
 
           gh api -X DELETE "repos/$REPOSITORY/git/refs/tags/$TAG" >/dev/null 2>&1 || true
-          gh release create "$TAG" --target "$TARGET" --title "$TITLE" --notes "" --prerelease
+          gh release create "$TAG" --repo "$REPOSITORY" --target "$TARGET" --title "$TITLE" --notes "" --prerelease
 
       - name: Ensure branch pre-release exists
         if: ${{ github.event.after != github.event.before }}
@@ -129,12 +129,12 @@ jobs:
           TARGET: ${{ github.sha }}
           TITLE: Development Build made for master branch
         run: |
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release delete "$TAG" --yes
+          if gh release view "$TAG" --repo "$REPOSITORY" >/dev/null 2>&1; then
+            gh release delete "$TAG" --repo "$REPOSITORY" --yes
           fi
 
           gh api -X DELETE "repos/$REPOSITORY/git/refs/tags/$TAG" >/dev/null 2>&1 || true
-          gh release create "$TAG" --target "$TARGET" --title "$TITLE" --notes "" --prerelease
+          gh release create "$TAG" --repo "$REPOSITORY" --target "$TARGET" --title "$TITLE" --notes "" --prerelease
 
       - uses: actions/checkout@v6
         with:
