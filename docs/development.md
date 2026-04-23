@@ -26,14 +26,15 @@ To get started with the development, follow these steps:
 
 1. Go to the  [planscape](../qgis-planscape-plugin) directory with a terminal
 1. Create a new Python virtual environment with pre-commit using Python aware of QGIS libraries:
-   ```shell
-    python build.py venv
+    ```shell
+     python build.py venv
     ```
-   In Windows it would be best to use python-qgis.bat or python-qgis-ltr.bat:
-   ```shell
-    C:\OSGeo4W64\bin\python-qgis.bat build.py venv
+   This installs the `dev` dependency group from `pyproject.toml` via `uv`.
+    In Windows it would be best to use python-qgis.bat or python-qgis-ltr.bat:
+    ```shell
+     C:\OSGeo4W64\bin\python-qgis.bat build.py venv
    ```
-1. **Note: This part is  only for developers that are using QGIS < 3.16.8.** If you want to use IDE for development, it is best to start it with the
+1. **Note: This part is only for developers using older Windows QGIS installations.** If you want to use IDE for development, it is best to start it with the
    following way on Windows:
    ```shell
     :: Check out the arguments with python build.py start_ide -h
@@ -53,9 +54,9 @@ For example to disable typing, remove mypy hook and flake8-annotations from the 
 ## Keeping dependencies up to date
 
 1. Activate the virtual environment.
-2. `pip install pip-tools`
-3. `pip-compile --upgrade requirements-dev.in`
-4. `pip install -r requirements-dev.txt` or `pip-sync requirements-dev.txt`
+2. `uv lock --upgrade`
+3. `uv sync --group dev`
+4. `uv pip compile pyproject.toml --group ci --universal --python-version 3.10 -o requirements-dev.txt`
 
 ## Adding or editing  source files
 
@@ -88,10 +89,11 @@ it.
 
 ## Testing
 
-Install python packages listed in [requirements-dev.txt](../requirements-dev.txt) to the virtual environment
+Install the development dependencies from [pyproject.toml](../pyproject.toml) into the virtual environment
 and run tests with:
 
 ```shell script
+uv sync --group dev
 pytest
 ```
 

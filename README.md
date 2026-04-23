@@ -12,6 +12,7 @@
 Install your virtualenv with:
 
 * `uv venv .venv --python /usr/bin/python3 --system-site-packages`
+* `uv sync --group dev`
 
 This will create a virtualenv, inside your project folder, with your QGIS Python interpreter
 and using system-site-packages. You might need to replace `/usr/bin/python3` with your current QGIS
@@ -30,6 +31,12 @@ print(sys.executable)
 ```
 
 This should return you the current interpreter.
+
+To generate the CI requirements file locally, run:
+
+```bash
+uv pip compile pyproject.toml --group ci --universal --python-version 3.10 -o requirements-dev.txt
+```
 
 ### Testing the plugin on QGIS
 

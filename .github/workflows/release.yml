@@ -7,16 +7,18 @@ on:
 jobs:
   plugin_dst:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
         with:
           submodules: true
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v1
+        uses: actions/setup-python@v6
         with:
-          python-version: 3.8
+          python-version: '3.8'
 
       #    Needed if the plugin is using Transifex, to have the lrelease command
       #    - name: Install Qt lrelease

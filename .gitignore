@@ -5,3 +5,8 @@ start_ide.bat
 .vscode
 */.pytest_cache
 __pycache__
+.coverage
+coverage.xml
+requirements-dev.txt
+requirements-ci.txt
+.qgis-settings/
