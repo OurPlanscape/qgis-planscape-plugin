@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsProcessingException, QgsSettings
 
@@ -27,7 +27,7 @@ TOKEN_AUTHCFG_KEY = "auth/token_authcfg"  # noqa: S105
 AUTH_REQUIRED_MESSAGE = "Planscape authentication is required. Open the Planscape plugin and sign in first."
 
 
-def get_setting(key: str, default: T, expected_type: type[T]) -> T:
+def get_setting(key: str, default: T, expected_type: Any) -> T:
     value = QgsSettings().value(f"{plugin_name()}/{key}", default)
     if value is None:
         return default
@@ -210,6 +210,7 @@ def _save_auth_config(config: QgsAuthMethodConfig, authcfg_id: str) -> str:
     if not ok or not stored_config.id():
         message = "Could not save the Planscape credentials to QGIS."
         raise PlanscapeAuthError(message)
+    return stored_config.id()
     return stored_config.id()
     return stored_config.id()
     return stored_config.id()
