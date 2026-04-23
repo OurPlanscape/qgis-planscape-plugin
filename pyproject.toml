@@ -3,7 +3,10 @@ name = "qgis-planscape-plugin"
 version = "0.1.0"
 description = "QGIS Planscape Plugin"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "qgis-plugin-dev-tools>=0.12.0",
+    "qgis-plugin-tools>=1.0.0",
+]
 
 [tool.pytest.ini_options]
 addopts = "-v"
@@ -35,11 +38,7 @@ module = ["qgis.*", "osgeo.*"]
 ignore_missing_imports = true
 
 [dependency-groups]
-ci = [
-    "pytest>=8.3,<9",
-    "pytest-cov>=5,<6",
-    "pytest-qgis>=2.1.0",
-]
+ci = ["pytest>=9.0.2", "pytest-cov>=7.0.0", "pytest-qgis>=2.1.0"]
 
 dev = [
     "debugpy>=1.8.20",
@@ -53,3 +52,7 @@ dev = [
     "qgis-venv-creator>=0.1.0",
     "ruff>=0.15.0",
 ]
+
+[tool.qgis_plugin_dev_tools]
+plugin_package_name = "planscape"
+runtime_requires = ["qgis_plugin_dev_tools"]

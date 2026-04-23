@@ -5,6 +5,7 @@ start_ide.bat
 .vscode
 */.pytest_cache
 __pycache__
+.ruff_cache/
 .coverage
 coverage.xml
 requirements-dev.txt
