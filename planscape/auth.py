@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import TypeVar
 
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsProcessingException, QgsSettings
+
 from planscape.qgis_plugin_tools.tools.network import post
 from planscape.qgis_plugin_tools.tools.resources import plugin_name
 
