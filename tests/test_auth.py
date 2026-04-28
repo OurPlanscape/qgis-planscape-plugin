@@ -118,6 +118,7 @@ def test_dialog_sign_in_updates_status_and_clears_password(qgis_app, monkeypatch
     assert qgis_app is not None
 
     calls = []
+    accepted = {"value": False}
 
     def fake_sign_in(email: str, password: str, environment: str) -> None:
         calls.append((email, password, environment))
@@ -126,6 +127,7 @@ def test_dialog_sign_in_updates_status_and_clears_password(qgis_app, monkeypatch
     monkeypatch.setattr(auth, "is_authenticated", lambda: True)
 
     dialog = AuthDialog()
+    monkeypatch.setattr(dialog, "accept", lambda: accepted.__setitem__("value", True))
     dialog.email_input.setText("person@example.com")
     dialog.password_input.setText("secret")
     dialog.environment_combo.setCurrentText("production")
@@ -136,6 +138,7 @@ def test_dialog_sign_in_updates_status_and_clears_password(qgis_app, monkeypatch
     assert dialog.password_input.text() == ""
     assert dialog.status_label.text() == "Authenticated for the production environment."
     assert dialog.sign_out_button.isEnabled() is True
+    assert accepted["value"] is True
 
 
 def test_dialog_sign_in_shows_error_on_auth_failure(qgis_app, monkeypatch):

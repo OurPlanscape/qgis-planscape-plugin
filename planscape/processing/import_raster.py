@@ -13,26 +13,26 @@ class ImportRasterAlgorithm(QgsProcessingAlgorithm):
     def name(self) -> str:
         return "import_raster"
 
-    def displayName(self) -> str:  # noqa: N802
+    def displayName(self) -> str:
         return "Import Raster"
 
     def group(self) -> str:
         return "Import"
 
-    def groupId(self) -> str:  # noqa: N802
+    def groupId(self) -> str:
         return "import"
 
-    def shortHelpString(self) -> str:  # noqa: N802
+    def shortHelpString(self) -> str:
         return "Imports one or more rasters into Planscape"
 
-    def createInstance(self) -> QgsProcessingAlgorithm:  # noqa: N802
+    def createInstance(self) -> QgsProcessingAlgorithm:
         return ImportRasterAlgorithm()
 
-    def initAlgorithm(self, configuration: Optional[dict[str, Any]] = None) -> None:  # noqa: N802, ARG002
+    def initAlgorithm(self, configuration: Optional[dict[str, Any]] = None) -> None:  # noqa: ARG002
         # Intentionally empty: no parameters and no outputs.
         return
 
-    def processAlgorithm(  # noqa: N802
+    def processAlgorithm(
         self,
         parameters: dict[str, Any],  # noqa: ARG002
         context: QgsProcessingContext,  # noqa: ARG002

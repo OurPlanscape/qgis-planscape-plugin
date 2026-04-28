@@ -21,6 +21,11 @@ exclude = ["planscape/qgis_plugin_tools"]
 
 [tool.ruff.lint]
 
+ignore = [
+    "SLF001",
+    "N802",
+]
+
 unfixable = [
     "F401", # unused imports
     "F841", # unused variables
