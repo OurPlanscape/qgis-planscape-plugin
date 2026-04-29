@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from planscape.models.domain.model import Model
 from planscape.models.domain.node_kind import NodeKind
@@ -21,7 +21,7 @@ class WorkspaceVisibility(StrEnum):
 @dataclass
 class Workspace(Model):
     visibility: WorkspaceVisibility = WorkspaceVisibility.PRIVATE
-    datasets: List[Dataset] = field(default_factory=list)
-    styles: List[Style] = field(default_factory=list)
-    users: List[User] = field(default_factory=list)
+    datasets: list[Dataset] = field(default_factory=list)
+    styles: list[Style] = field(default_factory=list)
+    users: list[User] = field(default_factory=list)
     kind: NodeKind = field(default=NodeKind.WORKSPACE, init=False)

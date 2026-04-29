@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, List
+from typing import Any
 
 from planscape.models.domain.auth import AuthErrorDetails
 
@@ -13,8 +13,8 @@ class AuthPayloadError(Exception):
 @dataclass(frozen=True)
 class LoginErrorPayload:
     detail: str = ""
-    non_field_errors: List[str] = field(default_factory=list)
-    field_errors: dict[str, List[str]] = field(default_factory=dict)
+    non_field_errors: list[str] = field(default_factory=list)
+    field_errors: dict[str, list[str]] = field(default_factory=dict)
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> LoginErrorPayload:
@@ -25,7 +25,7 @@ class LoginErrorPayload:
         detail = _optional_string(payload.get("detail"), "detail")
         non_field_errors = _string_list(payload.get("non_field_errors", []), "non_field_errors")
 
-        field_errors: dict[str, List[str]] = {}
+        field_errors: dict[str, list[str]] = {}
         for key, value in payload.items():
             if key in {"detail", "non_field_errors"}:
                 continue
@@ -47,7 +47,7 @@ def _optional_string(value: Any, field_name: str) -> str:
     raise AuthPayloadError(message)
 
 
-def _string_list(value: Any, field_name: str) -> List[str]:
+def _string_list(value: Any, field_name: str) -> list[str]:
     if isinstance(value, str):
         return [value]
     if isinstance(value, list) and all(isinstance(item, str) for item in value):

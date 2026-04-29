@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from qgis.PyQt.QtWidgets import QAction, QTreeWidget, QTreeWidgetItem, QWidget
 
@@ -24,7 +24,7 @@ class DockContext:
 class DockNodeBehavior:
     has_children = False
 
-    def load_children(self, model: Model, context: DockContext) -> List[Model]:  # noqa: ARG002
+    def load_children(self, model: Model, context: DockContext) -> list[Model]:  # noqa: ARG002
         return []
 
     def actions(
@@ -32,7 +32,7 @@ class DockNodeBehavior:
         model: Model,  # noqa: ARG002
         context: DockContext,  # noqa: ARG002
         item: QTreeWidgetItem,  # noqa: ARG002
-    ) -> List[QAction]:
+    ) -> list[QAction]:
         return []
 
 
