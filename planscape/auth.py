@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, List, TypeVar
+from typing import Any, TypeVar
 
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsProcessingException, QgsSettings
 
@@ -47,7 +47,7 @@ class LoginResult:
     refresh_token: str
 
 
-def environment_names() -> List[str]:
+def environment_names() -> list[str]:
     return list(ENVIRONMENT_URLS)
 
 
