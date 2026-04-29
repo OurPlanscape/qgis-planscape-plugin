@@ -24,6 +24,8 @@ exclude = ["planscape/qgis_plugin_tools"]
 ignore = [
     "SLF001",
     "N802",
+    "UP006", # project prefers typing.List over built-in list annotations
+    "UP035", # project prefers typing.List imports
 ]
 
 unfixable = [

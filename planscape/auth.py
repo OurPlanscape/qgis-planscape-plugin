@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import json
 from dataclasses import dataclass
-from typing import Any, TypeVar
+from typing import Any, List, TypeVar
 
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsProcessingException, QgsSettings
 
-from planscape.qgis_plugin_tools.tools.network import post
 from planscape.qgis_plugin_tools.tools.resources import plugin_name
+from planscape.services.auth_service import AuthServiceError, sign_in_request
 
 T = TypeVar("T")
 
@@ -48,7 +47,7 @@ class LoginResult:
     refresh_token: str
 
 
-def environment_names() -> list[str]:
+def environment_names() -> List[str]:
     return list(ENVIRONMENT_URLS)
 
 
@@ -114,38 +113,21 @@ def sign_in(email: str, password: str, environment: str) -> LoginResult:
         message = "Password is required."
         raise PlanscapeAuthError(message)
 
-    payload = {
-        "email": email.strip(),
-        "username": email.strip(),
-        "password": password,
-    }
-    response = post(login_url(environment), data=payload)
-
     try:
-        body = json.loads(response)
-    except json.JSONDecodeError as exc:
-        message = "Planscape returned an invalid login response."
-        raise PlanscapeAuthError(message) from exc
-
-    access_token = body.get("access")
-    refresh_token = body.get("refresh")
-    if not isinstance(access_token, str) or not access_token:
-        message = "Planscape login did not return an access token."
-        raise PlanscapeAuthError(message)
-    if not isinstance(refresh_token, str) or not refresh_token:
-        message = "Planscape login did not return a refresh token."
-        raise PlanscapeAuthError(message)
+        tokens = sign_in_request(email.strip(), password, get_base_url(environment))
+    except AuthServiceError as exc:
+        raise PlanscapeAuthError(str(exc)) from exc
 
     set_environment(environment)
     set_saved_email(email.strip())
 
     credentials_authcfg_id = _upsert_basic_auth_config(email.strip(), password, environment)
-    token_authcfg_id = _upsert_token_auth_config(access_token, environment)
+    token_authcfg_id = _upsert_token_auth_config(tokens.access_token, environment)
 
     set_setting(CREDENTIALS_AUTHCFG_KEY, credentials_authcfg_id)
     set_setting(TOKEN_AUTHCFG_KEY, token_authcfg_id)
 
-    return LoginResult(access_token=access_token, refresh_token=refresh_token)
+    return LoginResult(access_token=tokens.access_token, refresh_token=tokens.refresh_token)
 
 
 def sign_out() -> None:
@@ -210,7 +192,4 @@ def _save_auth_config(config: QgsAuthMethodConfig, authcfg_id: str) -> str:
     if not ok or not stored_config.id():
         message = "Could not save the Planscape credentials to QGIS."
         raise PlanscapeAuthError(message)
-    return stored_config.id()
-    return stored_config.id()
-    return stored_config.id()
     return stored_config.id()
