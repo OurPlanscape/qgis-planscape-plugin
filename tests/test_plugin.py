@@ -1,10 +1,37 @@
+import pytest
 from qgis.PyQt.QtWidgets import QWidget
 
+from planscape.gui.behaviors import behavior_for
 from planscape.gui.dock_nodes import NODE_KIND_ROLE, NODE_OBJECT_ROLE
 from planscape.gui.planscape_dock import PlanscapeDockWidget
-from planscape.models.domain import Category, DataLayer, Dataset, LoginNode, NodeKind, Server, Style, User, Workspace
+from planscape.models.domain import (
+    Category,
+    DataLayer,
+    Dataset,
+    LoginNode,
+    NodeKind,
+    Server,
+    Style,
+    User,
+    Workspace,
+    WorkspaceVisibility,
+)
 from planscape.plugin import Plugin
 from planscape.qgis_plugin_tools.tools.resources import plugin_name
+
+
+@pytest.fixture(autouse=True)
+def fake_workspace_service(monkeypatch):
+    monkeypatch.setattr(
+        "planscape.gui.planscape_dock.auth.get_base_url", lambda environment: f"https://{environment}.example"
+    )
+    monkeypatch.setattr("planscape.gui.planscape_dock.auth.ensure_authenticated", lambda: "authcfg-id")
+
+    def fake_list_workspaces(base_url: str, authcfg_id: str) -> list[Workspace]:
+        del base_url, authcfg_id
+        return []
+
+    monkeypatch.setattr("planscape.gui.planscape_dock.list_workspaces", fake_list_workspaces)
 
 
 def test_plugin_name():
@@ -148,6 +175,29 @@ def test_planscape_dock_shows_environment_when_authenticated(qgis_app, monkeypat
     assert dock.tree.topLevelItem(0).childCount() == 0
 
 
+def test_planscape_dock_loads_workspaces_when_authenticated(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {}
+
+    def fake_list_workspaces(base_url: str, authcfg_id: str) -> list[Workspace]:
+        captured["base_url"] = base_url
+        captured["authcfg_id"] = authcfg_id
+        return [Workspace(id=7, name="Regional Plan")]
+
+    monkeypatch.setattr("planscape.gui.planscape_dock.auth.is_authenticated", lambda: True)
+    monkeypatch.setattr("planscape.gui.planscape_dock.auth.get_environment", lambda: "catalog")
+    monkeypatch.setattr("planscape.gui.planscape_dock.list_workspaces", fake_list_workspaces)
+
+    dock = PlanscapeDockWidget()
+    root = dock.tree.topLevelItem(0)
+
+    assert captured == {"base_url": "https://catalog.example", "authcfg_id": "authcfg-id"}
+    assert root.childCount() == 1
+    assert root.child(0).text(0) == "Regional Plan"
+    assert root.child(0).data(0, NODE_OBJECT_ROLE) == Workspace(id=7, name="Regional Plan")
+
+
 def test_planscape_dock_server_lists_workspace_children(qgis_app, monkeypatch):
     assert qgis_app is not None
 
@@ -166,20 +216,25 @@ def test_planscape_dock_server_lists_workspace_children(qgis_app, monkeypatch):
     assert workspace.data(0, NODE_OBJECT_ROLE) == Workspace(id=7, name="Regional Plan")
 
 
-def test_planscape_dock_refresh_reloads_mutated_server_children(qgis_app, monkeypatch):
+def test_planscape_dock_refresh_reloads_server_children_from_service(qgis_app, monkeypatch):
     assert qgis_app is not None
+
+    calls = {"count": 0}
+
+    def fake_list_workspaces(base_url: str, authcfg_id: str) -> list[Workspace]:
+        del base_url, authcfg_id
+        calls["count"] += 1
+        if calls["count"] == 1:
+            return []
+        return [Workspace(id=7, name="Regional Plan")]
 
     monkeypatch.setattr("planscape.gui.planscape_dock.auth.is_authenticated", lambda: True)
     monkeypatch.setattr("planscape.gui.planscape_dock.auth.get_environment", lambda: "catalog")
+    monkeypatch.setattr("planscape.gui.planscape_dock.list_workspaces", fake_list_workspaces)
 
     dock = PlanscapeDockWidget()
-    server = Server(name="Planscape", env="catalog")
-    dock.tree.clear()
-    dock.tree.addTopLevelItem(dock._server_item(server))
     root = dock.tree.topLevelItem(0)
-    dock._load_item_children(root)
 
-    server.workspaces.append(Workspace(id=7, name="Regional Plan"))
     dock._refresh_item(root)
 
     assert root.childCount() == 1
@@ -271,6 +326,12 @@ def test_planscape_dock_click_login_opens_auth_and_refreshes(qgis_app, monkeypat
     monkeypatch.setattr("planscape.gui.planscape_dock.auth.is_authenticated", lambda: auth_state["value"])
     monkeypatch.setattr("planscape.gui.planscape_dock.auth.get_environment", lambda: "staging")
 
+    def fake_list_workspaces(base_url: str, authcfg_id: str) -> list[Workspace]:
+        del base_url, authcfg_id
+        return [Workspace(id=8, name="Logged In Workspace")]
+
+    monkeypatch.setattr("planscape.gui.planscape_dock.list_workspaces", fake_list_workspaces)
+
     dock = PlanscapeDockWidget()
     item = dock.tree.topLevelItem(0)
 
@@ -278,7 +339,8 @@ def test_planscape_dock_click_login_opens_auth_and_refreshes(qgis_app, monkeypat
 
     assert state["executed"] is True
     assert dock.tree.topLevelItem(0).text(0) == "Planscape (staging)"
-    assert dock.tree.topLevelItem(0).childCount() == 0
+    assert dock.tree.topLevelItem(0).childCount() == 1
+    assert dock.tree.topLevelItem(0).child(0).text(0) == "Logged In Workspace"
 
 
 def test_planscape_dock_server_context_menu_has_add_workspace_action(qgis_app, monkeypatch):
@@ -349,6 +411,44 @@ def test_planscape_dock_collection_context_menu_has_refresh_action(qgis_app, mon
     assert captured["actions"] == ["New Dataset", "Refresh"]
 
 
+def test_planscape_dock_workspace_context_menu_has_edit_action(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {"actions": []}
+
+    class FakeMenu:
+        def __init__(self, parent=None):
+            del parent
+
+        def addAction(self, action):
+            captured["actions"].append(action.text())
+
+        def exec(self, position):
+            del position
+
+    monkeypatch.setattr("planscape.gui.planscape_dock.QMenu", FakeMenu)
+    monkeypatch.setattr("planscape.gui.planscape_dock.auth.is_authenticated", lambda: True)
+    monkeypatch.setattr("planscape.gui.planscape_dock.auth.get_environment", lambda: "catalog")
+
+    dock = PlanscapeDockWidget()
+    workspace_model = Workspace(id=7, name="Regional Plan")
+    server = Server(name="Planscape", env="catalog", workspaces=[workspace_model])
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(dock._server_item(server))
+    dock._load_item_children(dock.tree.topLevelItem(0))
+    workspace = dock.tree.topLevelItem(0).child(0)
+
+    def item_at(position):
+        del position
+        return workspace
+
+    monkeypatch.setattr(dock.tree, "itemAt", item_at)
+
+    dock._show_context_menu(dock.tree.rect().center())
+
+    assert captured["actions"] == ["Edit", "Refresh"]
+
+
 def test_planscape_dock_add_workspace_opens_workspace_dialog(qgis_app, monkeypatch):
     assert qgis_app is not None
 
@@ -361,13 +461,130 @@ def test_planscape_dock_add_workspace_opens_workspace_dialog(qgis_app, monkeypat
         def exec(self):
             state["executed"] = True
 
-    monkeypatch.setattr("planscape.gui.planscape_dock.WorkspaceDialog", FakeDialog)
+    monkeypatch.setattr("planscape.gui.commands.workspace.WorkspaceDialog", FakeDialog)
 
     dock = PlanscapeDockWidget()
+    server = Server(name="Planscape", env="catalog")
+    item = dock._server_item(server)
+    create_action = behavior_for(server).actions(server, dock._context(), item)[0]
 
-    dock._add_workspace()
+    create_action.trigger()
 
     assert state["executed"] is True
+
+
+def test_planscape_dock_edit_workspace_prefills_workspace_dialog(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {}
+
+    class FakeDialog:
+        def __init__(self, parent=None, *, workspace_id="", name="", visibility="private"):
+            del parent
+            captured["workspace_id"] = workspace_id
+            captured["name"] = name
+            captured["visibility"] = visibility
+
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr("planscape.gui.commands.workspace.WorkspaceDialog", FakeDialog)
+
+    dock = PlanscapeDockWidget()
+    workspace = Workspace(id=7, name="Regional Plan", visibility=WorkspaceVisibility.PUBLIC)
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(dock._server_item(Server(workspaces=[workspace])))
+    dock._load_item_children(dock.tree.topLevelItem(0))
+    workspace_item = dock.tree.topLevelItem(0).child(0)
+
+    edit_action = behavior_for(workspace).actions(workspace, dock._context(), workspace_item)[0]
+    edit_action.trigger()
+
+    assert captured == {"workspace_id": "7", "name": "Regional Plan", "visibility": "public"}
+
+
+def test_planscape_dock_edit_workspace_cancel_does_not_update(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    state = {"update_called": False}
+
+    class FakeDialog:
+        def __init__(self, parent=None, *, workspace_id="", name="", visibility="private"):
+            del parent, workspace_id, name, visibility
+
+        def exec(self):
+            return 0
+
+    def fake_update_workspace(base_url, authcfg_id, workspace_id, request):
+        del base_url, authcfg_id, workspace_id, request
+        state["update_called"] = True
+        return Workspace(id=7, name="Updated Plan")
+
+    monkeypatch.setattr("planscape.gui.commands.workspace.WorkspaceDialog", FakeDialog)
+    monkeypatch.setattr("planscape.gui.commands.workspace.update_workspace", fake_update_workspace)
+
+    dock = PlanscapeDockWidget()
+    workspace = Workspace(id=7, name="Regional Plan")
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(dock._server_item(Server(workspaces=[workspace])))
+    dock._load_item_children(dock.tree.topLevelItem(0))
+    item = dock.tree.topLevelItem(0).child(0)
+
+    edit_action = behavior_for(workspace).actions(workspace, dock._context(), item)[0]
+    edit_action.trigger()
+
+    assert state["update_called"] is False
+
+
+def test_planscape_dock_edit_workspace_updates_workspace_via_service(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {}
+
+    class FakeDialog:
+        def __init__(self, parent=None, *, workspace_id="", name="", visibility="private"):
+            del parent, workspace_id, name, visibility
+
+        def exec(self):
+            return 1
+
+        def workspace_name(self):
+            return "Updated Plan"
+
+        def workspace_visibility(self):
+            return "private"
+
+    def fake_update_workspace(base_url, authcfg_id, workspace_id, request):
+        captured["base_url"] = base_url
+        captured["authcfg_id"] = authcfg_id
+        captured["workspace_id"] = workspace_id
+        captured["request"] = request
+        return Workspace(id=7, name="Updated Plan", visibility=WorkspaceVisibility.PRIVATE)
+
+    monkeypatch.setattr("planscape.gui.commands.workspace.WorkspaceDialog", FakeDialog)
+    monkeypatch.setattr("planscape.gui.commands.workspace.auth.get_environment", lambda: "catalog")
+    monkeypatch.setattr("planscape.gui.commands.workspace.update_workspace", fake_update_workspace)
+
+    dock = PlanscapeDockWidget()
+    workspace = Workspace(id=7, name="Regional Plan", visibility=WorkspaceVisibility.PUBLIC)
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(dock._server_item(Server(workspaces=[workspace])))
+    dock._load_item_children(dock.tree.topLevelItem(0))
+    item = dock.tree.topLevelItem(0).child(0)
+
+    edit_action = behavior_for(workspace).actions(workspace, dock._context(), item)[0]
+    edit_action.trigger()
+
+    assert captured["base_url"] == "https://catalog.example"
+    assert captured["authcfg_id"] == "authcfg-id"
+    assert captured["workspace_id"] == 7
+    assert captured["request"].to_dict() == {"name": "Updated Plan", "visibility": "PRIVATE"}
+    assert item.text(0) == "Updated Plan"
+    assert item.data(0, NODE_OBJECT_ROLE) == Workspace(
+        id=7,
+        name="Updated Plan",
+        visibility=WorkspaceVisibility.PRIVATE,
+    )
 
 
 def test_planscape_dock_root_context_menu_has_auth_actions_in_order(qgis_app, monkeypatch):

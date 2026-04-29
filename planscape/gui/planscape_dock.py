@@ -14,8 +14,8 @@ from planscape.gui.dock_nodes import (
     model_item,
     server_item,
 )
-from planscape.gui.workspace_dialog import WorkspaceDialog
-from planscape.models.domain import Model, NodeKind, Server
+from planscape.models.domain import Model, NodeKind, Server, Workspace
+from planscape.services.workspace_service import WorkspaceServiceError, list_workspaces
 
 
 class PlanscapeDockWidget(QDockWidget):
@@ -40,7 +40,10 @@ class PlanscapeDockWidget(QDockWidget):
         self.tree.addTopLevelItem(root)
 
         root.setExpanded(True)
-        self._load_item_children(root)
+        if isinstance(item_node(root), Server):
+            self._refresh_item(root)
+        else:
+            self._load_item_children(root)
         self.tree.setCurrentItem(root)
 
     def focus_panel(self) -> None:
@@ -79,7 +82,9 @@ class PlanscapeDockWidget(QDockWidget):
     def _root_item(self) -> QTreeWidgetItem:
         if not auth.is_authenticated():
             return login_item()
-        return self._server_item(Server(name="Planscape", env=auth.get_environment()))
+        environment = auth.get_environment()
+        server = Server(name="Planscape", env=environment)
+        return self._server_item(server)
 
     def _server_item(self, server: Server) -> QTreeWidgetItem:
         return server_item(server)
@@ -89,7 +94,6 @@ class PlanscapeDockWidget(QDockWidget):
             tree=self.tree,
             parent=self,
             refresh_node=self._refresh_item,
-            create_workspace=self._add_workspace,
             login_another_env=self._login_another_env,
             logout=self._logout,
         )
@@ -98,8 +102,17 @@ class PlanscapeDockWidget(QDockWidget):
         self._replace_item_children(item, expanded_keys=set())
 
     def _refresh_item(self, item: QTreeWidgetItem) -> None:
+        node = item_node(item)
+        if isinstance(node, Server):
+            node.workspaces = self._load_workspaces(node.env)
         expanded_keys = self._expanded_node_keys(item)
         self._replace_item_children(item, expanded_keys=expanded_keys)
+
+    def _load_workspaces(self, environment: str) -> list[Workspace]:
+        try:
+            return list_workspaces(auth.get_base_url(environment), auth.ensure_authenticated())
+        except WorkspaceServiceError:
+            return []
 
     def _replace_item_children(self, item: QTreeWidgetItem, *, expanded_keys: set[str]) -> None:
         node = item_node(item)
@@ -129,10 +142,6 @@ class PlanscapeDockWidget(QDockWidget):
             keys.add(node.node_key())
         for index in range(item.childCount()):
             self._collect_expanded_node_keys(item.child(index), keys)
-
-    def _add_workspace(self) -> None:
-        dialog = WorkspaceDialog(parent=iface.mainWindow())
-        dialog.exec()
 
     def _login_another_env(self) -> None:
         auth.sign_out()

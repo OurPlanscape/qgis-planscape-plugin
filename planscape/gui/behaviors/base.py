@@ -16,7 +16,6 @@ class DockContext:
     tree: QTreeWidget
     parent: QWidget
     refresh_node: Callable[[QTreeWidgetItem], None]
-    create_workspace: Callable[[], None]
     login_another_env: Callable[[], None]
     logout: Callable[[], None]
 

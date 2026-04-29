@@ -31,6 +31,13 @@ unfixable = [
     "F841", # unused variables
 ]
 
+[tool.mypy]
+exclude = ["^tests/.*"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
 [[tool.mypy.overrides]]
 module = "planscape.qgis_plugin_tools.*"
 ignore_errors = true

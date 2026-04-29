@@ -9,6 +9,10 @@ in Planscape API
 
 - DO NOT MAKE CHANGES TO `planscape/qgis_plugin_tools`
 
+## Logging
+
+- All loggers under our control MUST be named `logger`
+
 ## Commands
 
 - Install: `uv sync`
@@ -30,6 +34,7 @@ in Planscape API
 - Authorization header: `Authorization: Bearer <token>`
 - Swagger/API schemas in https://dev.planscape.org/planscape-backend/v2/schema/swagger
 - API logic should be located in `planscape/services`
+- ALL API calls must be logged with `logger.info('[API] <method>:<url>')
 
 ## Git
 

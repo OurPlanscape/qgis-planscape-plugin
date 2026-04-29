@@ -10,7 +10,7 @@ from qgis.utils import iface
 
 from planscape.gui.planscape_dock import PlanscapeDockWidget
 from planscape.processing.provider import PlanscapeProcessingProvider
-from planscape.qgis_plugin_tools.tools.custom_logging import setup_logger, teardown_logger
+from planscape.qgis_plugin_tools.tools.custom_logging import setup_loggers
 from planscape.qgis_plugin_tools.tools.i18n import setup_translation
 from planscape.qgis_plugin_tools.tools.resources import plugin_name
 
@@ -24,7 +24,12 @@ class Plugin:
     name = plugin_name()
 
     def __init__(self) -> None:
-        setup_logger(Plugin.name)
+        self.teardown_logging = setup_loggers(
+            Plugin.name,
+            "planscape",
+            "planscape.qgis_plugin_tools",
+            message_log_name=Plugin.name,
+        )
 
         # initialize locale
         locale, file_path = setup_translation()
@@ -135,7 +140,7 @@ class Plugin:
         for action in self.actions:
             iface.removePluginMenu(Plugin.name, action)
             iface.removeToolBarIcon(action)
-        teardown_logger(Plugin.name)
+        self.teardown_logging()
 
     def run(self) -> None:
         """Run method that performs all the real work"""

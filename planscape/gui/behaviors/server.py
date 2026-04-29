@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, refresh_action
+from planscape.gui.commands.workspace import create_workspace
 from planscape.models.domain import Model, Server
 
 if TYPE_CHECKING:
@@ -19,7 +20,7 @@ class ServerBehavior(DockNodeBehavior):
 
     def actions(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> list[QAction]:  # noqa: ARG002
         return [
-            action("Create new Workspace", context, context.create_workspace),
+            action("Create new Workspace", context, lambda: create_workspace(context)),
             refresh_action(context, item),
             action("Login another env", context, context.login_another_env),
             action("Logout", context, context.logout),

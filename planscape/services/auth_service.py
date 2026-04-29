@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -12,6 +13,7 @@ if TYPE_CHECKING:
     from planscape.models.domain.auth import AuthErrorDetails
 
 LOGIN_PATH = "/dj-rest-auth/login/"
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -27,9 +29,11 @@ class AuthServiceError(Exception):
 
 
 def sign_in_request(email: str, password: str, base_url: str) -> LoginTokens:
+    url = f"{base_url}{LOGIN_PATH}"
+    logger.info("[API] POST:%s", url)
     try:
         response = post(
-            f"{base_url}{LOGIN_PATH}",
+            url,
             data={
                 "email": email,
                 "username": email,
