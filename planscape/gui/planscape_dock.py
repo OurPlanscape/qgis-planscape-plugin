@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QAction, QDockWidget, QMenu, QTreeWidget, QTreeWidgetItem, QWidget
+from qgis.PyQt.QtWidgets import QDockWidget, QMenu, QTreeWidget, QTreeWidgetItem, QWidget
 from qgis.utils import iface
 
 from planscape import auth
 from planscape.gui.auth_dialog import AuthDialog
+from planscape.gui.behaviors import DockContext, behavior_for
+from planscape.gui.dock_nodes import (
+    item_kind,
+    item_node,
+    login_item,
+    model_item,
+    server_item,
+)
 from planscape.gui.workspace_dialog import WorkspaceDialog
-
-ROOT_NODE_KIND = "root"
-WORKSPACES_NODE_KIND = "workspaces"
-LOGIN_NODE_KIND = "login"
+from planscape.models.domain import Model, NodeKind, Server
 
 
 class PlanscapeDockWidget(QDockWidget):
@@ -22,6 +27,7 @@ class PlanscapeDockWidget(QDockWidget):
         self.tree.setHeaderHidden(True)
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.itemClicked.connect(self._handle_item_clicked)
+        self.tree.itemExpanded.connect(self._load_item_children)
         self.tree.customContextMenuRequested.connect(self._show_context_menu)
 
         self.setWidget(self.tree)
@@ -30,18 +36,11 @@ class PlanscapeDockWidget(QDockWidget):
     def refresh_tree(self) -> None:
         self.tree.clear()
 
-        root = QTreeWidgetItem([self._root_label()])
-        root.setData(
-            0,
-            Qt.ItemDataRole.UserRole,
-            LOGIN_NODE_KIND if not auth.is_authenticated() else ROOT_NODE_KIND,
-        )
+        root = self._root_item()
         self.tree.addTopLevelItem(root)
 
-        if auth.is_authenticated():
-            root.addChild(self._workspaces_item())
-
         root.setExpanded(True)
+        self._load_item_children(root)
         self.tree.setCurrentItem(root)
 
     def focus_panel(self) -> None:
@@ -51,7 +50,7 @@ class PlanscapeDockWidget(QDockWidget):
 
     def _handle_item_clicked(self, item: QTreeWidgetItem, column: int) -> None:
         del column
-        if item.data(0, Qt.ItemDataRole.UserRole) != LOGIN_NODE_KIND:
+        if item_kind(item) != NodeKind.LOGIN:
             return
 
         dialog = AuthDialog(parent=iface.mainWindow())
@@ -63,46 +62,73 @@ class PlanscapeDockWidget(QDockWidget):
         if item is None:
             return
 
-        menu = QMenu(self.tree)
-        item_kind = item.data(0, Qt.ItemDataRole.UserRole)
-        if item_kind == ROOT_NODE_KIND:
-            menu.addAction(self._login_another_env_action())
-            menu.addAction(self._logout_action())
-        elif item_kind == WORKSPACES_NODE_KIND:
-            menu.addAction(self._add_workspace_action())
-        else:
+        node = item_node(item)
+        if not isinstance(node, Model):
             return
+
+        actions = behavior_for(node).actions(node, self._context(), item)
+        if not actions:
+            return
+
+        menu = QMenu(self.tree)
+        for action in actions:
+            menu.addAction(action)
 
         menu.exec(self.tree.viewport().mapToGlobal(position))
 
-    def _root_label(self) -> str:
+    def _root_item(self) -> QTreeWidgetItem:
         if not auth.is_authenticated():
-            return "Click to login"
-        return f"Planscape ({auth.get_environment()})"
+            return login_item()
+        return self._server_item(Server(name="Planscape", env=auth.get_environment()))
 
-    def _workspaces_item(self) -> QTreeWidgetItem:
-        item = QTreeWidgetItem([f"Workspaces ({self._workspace_count()})"])
-        item.setData(0, Qt.ItemDataRole.UserRole, WORKSPACES_NODE_KIND)
-        return item
+    def _server_item(self, server: Server) -> QTreeWidgetItem:
+        return server_item(server)
 
-    def _workspace_count(self) -> int:
-        # TODO: replace with an authenticated HTTP call once the workspace endpoint is defined.
-        return 0
+    def _context(self) -> DockContext:
+        return DockContext(
+            tree=self.tree,
+            parent=self,
+            refresh_node=self._refresh_item,
+            create_workspace=self._add_workspace,
+            login_another_env=self._login_another_env,
+            logout=self._logout,
+        )
 
-    def _add_workspace_action(self) -> QAction:
-        action = QAction("Create new Workspace", self.tree)
-        action.triggered.connect(self._add_workspace)
-        return action
+    def _load_item_children(self, item: QTreeWidgetItem) -> None:
+        self._replace_item_children(item, expanded_keys=set())
 
-    def _login_another_env_action(self) -> QAction:
-        action = QAction("Login another env", self.tree)
-        action.triggered.connect(self._login_another_env)
-        return action
+    def _refresh_item(self, item: QTreeWidgetItem) -> None:
+        expanded_keys = self._expanded_node_keys(item)
+        self._replace_item_children(item, expanded_keys=expanded_keys)
 
-    def _logout_action(self) -> QAction:
-        action = QAction("Logout", self.tree)
-        action.triggered.connect(self._logout)
-        return action
+    def _replace_item_children(self, item: QTreeWidgetItem, *, expanded_keys: set[str]) -> None:
+        node = item_node(item)
+        if not isinstance(node, Model):
+            return
+
+        behavior = behavior_for(node)
+        if not behavior.has_children:
+            return
+
+        item.takeChildren()
+        for child_model in behavior.load_children(node, self._context()):
+            child_item = model_item(child_model)
+            item.addChild(child_item)
+            if child_model.node_key() in expanded_keys:
+                child_item.setExpanded(True)
+                self._replace_item_children(child_item, expanded_keys=expanded_keys)
+
+    def _expanded_node_keys(self, item: QTreeWidgetItem) -> set[str]:
+        keys: set[str] = set()
+        self._collect_expanded_node_keys(item, keys)
+        return keys
+
+    def _collect_expanded_node_keys(self, item: QTreeWidgetItem, keys: set[str]) -> None:
+        node = item_node(item)
+        if isinstance(node, Model) and item.isExpanded():
+            keys.add(node.node_key())
+        for index in range(item.childCount()):
+            self._collect_expanded_node_keys(item.child(index), keys)
 
     def _add_workspace(self) -> None:
         dialog = WorkspaceDialog(parent=iface.mainWindow())

@@ -24,7 +24,7 @@ import subprocess
 import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol, TypedDict, cast
+from typing import TYPE_CHECKING, Any, List, Protocol, TypedDict, cast
 
 if TYPE_CHECKING:
     from collections.abc import Generator
@@ -42,7 +42,7 @@ if TYPE_CHECKING:
         def create_venv(cls, *args: Any, **kwargs: Any) -> Path: ...
 
         @staticmethod
-        def cli_arguments() -> list[CliArg]: ...
+        def cli_arguments() -> List[CliArg]: ...
 
 
 __version__ = "0.1.0"
@@ -156,7 +156,7 @@ def _create_glob_generator_from_pattern(pattern: str) -> Generator[Path, None, N
     The Path.glob() method does not support absolute paths. This is to overcome that limitation.
     """
 
-    glob_parts: list[str] = []
+    glob_parts: List[str] = []
     part_iterator = iter(Path(pattern).parts)
     root_part = next(part_iterator)
     if "*" in root_part:
@@ -178,7 +178,7 @@ class Platform(ABC):
         """Create a virtual environment for plugin project."""
 
     @staticmethod
-    def cli_arguments() -> list[CliArg]:
+    def cli_arguments() -> List[CliArg]:
         """Returns environment specific command line arguments to be passed to argparse.ArgumentParser.add_argument()"""
 
         return []
@@ -189,7 +189,7 @@ class MultiQgisPlatform(Platform):
     @abstractmethod
     def _find_qgis_installations(
         qgis_installation_search_path_pattern: str | None = None,
-    ) -> list[Path]:
+    ) -> List[Path]:
         """Find all QGIS installations from the system."""
         raise NotImplementedError
 
@@ -254,7 +254,7 @@ class MultiQgisPlatform(Platform):
                     continue
 
     @staticmethod
-    def cli_arguments() -> list[CliArg]:
+    def cli_arguments() -> List[CliArg]:
         return [
             CliArg(
                 "--qgis-installation",
@@ -287,7 +287,7 @@ class MultiQgisPlatform(Platform):
 
 class Windows(MultiQgisPlatform):
     @classmethod
-    def _find_qgis_installations(cls, custom_search_path_pattern: str | None = None) -> list[Path]:
+    def _find_qgis_installations(cls, custom_search_path_pattern: str | None = None) -> List[Path]:
         """Find all QGIS installations from the Windows system."""
 
         possible_qgis_installation_generators = [

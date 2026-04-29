@@ -7,6 +7,7 @@ from planscape.gui.auth_dialog import AuthDialog
 from planscape.processing.import_raster import ImportRasterAlgorithm
 from planscape.processing.import_vector import ImportVectorAlgorithm
 from planscape.qgis_plugin_tools.tools.resources import plugin_name
+from planscape.services.auth_service import AuthServiceError, LoginTokens
 
 
 def _clear_auth_settings() -> None:
@@ -38,10 +39,13 @@ def test_auth_dialog_defaults(qgis_app):
 def test_sign_in_stores_environment_and_authcfg_ids(monkeypatch):
     _clear_auth_settings()
 
-    def fake_post(*, url: str | None = None, data: dict[str, str] | None = None) -> str:
-        assert url is not None
-        assert data is not None
-        return '{"access": "access-token", "refresh": "refresh-token"}'
+    captured = {}
+
+    def fake_sign_in_request(email: str, password: str, base_url: str) -> LoginTokens:
+        captured["email"] = email
+        captured["password"] = password
+        captured["base_url"] = base_url
+        return LoginTokens(access_token="access-token", refresh_token="refresh-token")
 
     def fake_upsert_basic(email: str, password: str, environment: str) -> str:
         assert email == "person@example.com"
@@ -54,11 +58,7 @@ def test_sign_in_stores_environment_and_authcfg_ids(monkeypatch):
         assert environment == "staging"
         return "token-authcfg"
 
-    monkeypatch.setattr(
-        auth,
-        "post",
-        lambda url, data: fake_post(url=url, data=data),
-    )
+    monkeypatch.setattr(auth, "sign_in_request", fake_sign_in_request)
     monkeypatch.setattr(auth, "_upsert_basic_auth_config", fake_upsert_basic)
     monkeypatch.setattr(auth, "_upsert_token_auth_config", fake_upsert_token)
 
@@ -70,34 +70,42 @@ def test_sign_in_stores_environment_and_authcfg_ids(monkeypatch):
     assert auth.get_saved_email() == "person@example.com"
     assert str(auth.get_setting(auth.CREDENTIALS_AUTHCFG_KEY, "", str)) == "basic-authcfg"
     assert auth.get_token_authcfg_id() == "token-authcfg"
+    assert captured == {
+        "email": "person@example.com",
+        "password": "secret",
+        "base_url": "https://staging.planscape.org/planscape-backend",
+    }
 
 
-def test_sign_in_rejects_invalid_json_response(monkeypatch):
+def test_sign_in_wraps_auth_service_errors(monkeypatch):
     _clear_auth_settings()
 
-    def fake_post(url: str, data: dict[str, str]) -> str:
-        assert url.endswith("/dj-rest-auth/login/")
-        assert data["email"] == "person@example.com"
-        return "not-json"
+    def fake_sign_in_request(email: str, password: str, base_url: str) -> LoginTokens:
+        del email, password, base_url
+        message = "Planscape returned an invalid login response."
+        raise AuthServiceError(message)
 
-    monkeypatch.setattr(auth, "post", fake_post)
+    monkeypatch.setattr(auth, "sign_in_request", fake_sign_in_request)
 
     with pytest.raises(auth.PlanscapeAuthError, match="invalid login response"):
         auth.sign_in("person@example.com", "secret", "catalog")
 
 
-def test_sign_in_requires_access_token(monkeypatch):
+def test_sign_in_does_not_save_auth_configs_when_service_fails(monkeypatch):
     _clear_auth_settings()
+    calls = []
 
-    def fake_post(url: str, data: dict[str, str]) -> str:
-        assert url.endswith("/dj-rest-auth/login/")
-        assert data["password"] == "secret"
-        return '{"refresh": "refresh-token"}'
+    def fake_sign_in_request(email: str, password: str, base_url: str) -> LoginTokens:
+        del email, password, base_url
+        message = "Planscape login did not return an access token."
+        raise AuthServiceError(message)
 
-    monkeypatch.setattr(auth, "post", fake_post)
+    monkeypatch.setattr(auth, "sign_in_request", fake_sign_in_request)
+    monkeypatch.setattr(auth, "_upsert_basic_auth_config", lambda *args: calls.append(args))
 
     with pytest.raises(auth.PlanscapeAuthError, match="access token"):
         auth.sign_in("person@example.com", "secret", "catalog")
+    assert calls == []
 
 
 def test_sign_out_clears_token_authcfg_and_removes_saved_token(monkeypatch):

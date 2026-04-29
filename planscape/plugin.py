@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 from qgis.core import QgsApplication
 from qgis.PyQt.QtCore import QCoreApplication, Qt, QTranslator
@@ -36,7 +36,7 @@ class Plugin:
         else:
             pass
 
-        self.actions: list[QAction] = []
+        self.actions: List[QAction] = []
         self.menu = Plugin.name
         self.processing_provider = PlanscapeProcessingProvider()
         self.dock_widget: PlanscapeDockWidget | None = None
