@@ -24,6 +24,7 @@ class WorkspaceDialog(QDialog, FORM_CLASS):
         self.id_input.setText(workspace_id)
         self.name_input.setText(name)
         self.visibility_combo.setCurrentText(visibility)
+        self.name_input.setFocus()
 
         self.cancel_button.clicked.connect(self.reject)
         self.save_button.clicked.connect(self.accept)

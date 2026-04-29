@@ -473,6 +473,59 @@ def test_planscape_dock_add_workspace_opens_workspace_dialog(qgis_app, monkeypat
     assert state["executed"] is True
 
 
+def test_planscape_dock_add_workspace_creates_workspace_and_refreshes(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {}
+
+    class FakeDialog:
+        def __init__(self, parent=None):
+            del parent
+
+        def exec(self):
+            return 1
+
+        def workspace_name(self):
+            return "New Workspace"
+
+        def workspace_visibility(self):
+            return "public"
+
+    def fake_create_workspace(base_url, authcfg_id, request):
+        captured["base_url"] = base_url
+        captured["authcfg_id"] = authcfg_id
+        captured["request"] = request
+        return Workspace(id=9, name="New Workspace", visibility=WorkspaceVisibility.PUBLIC)
+
+    monkeypatch.setattr("planscape.gui.commands.workspace.WorkspaceDialog", FakeDialog)
+    monkeypatch.setattr("planscape.gui.commands.workspace.auth.get_environment", lambda: "catalog")
+    monkeypatch.setattr("planscape.gui.commands.workspace.create_workspace_request", fake_create_workspace)
+
+    def fake_list_workspaces(base_url: str, authcfg_id: str) -> list[Workspace]:
+        del base_url, authcfg_id
+        return [Workspace(id=9, name="New Workspace", visibility=WorkspaceVisibility.PUBLIC)]
+
+    monkeypatch.setattr(
+        "planscape.gui.planscape_dock.list_workspaces",
+        fake_list_workspaces,
+    )
+
+    dock = PlanscapeDockWidget()
+    server = Server(name="Planscape", env="catalog")
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(dock._server_item(server))
+    item = dock.tree.topLevelItem(0)
+    create_action = behavior_for(server).actions(server, dock._context(), item)[0]
+
+    create_action.trigger()
+
+    assert captured["base_url"] == "https://catalog.example"
+    assert captured["authcfg_id"] == "authcfg-id"
+    assert captured["request"].to_dict() == {"name": "New Workspace", "visibility": "PUBLIC"}
+    assert item.childCount() == 1
+    assert item.child(0).text(0) == "New Workspace"
+
+
 def test_planscape_dock_edit_workspace_prefills_workspace_dialog(qgis_app, monkeypatch):
     assert qgis_app is not None
 

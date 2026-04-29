@@ -16,6 +16,7 @@ def test_workspace_dialog_defaults(qgis_app):
     ]
     assert dialog.visibility_combo.currentText() == "private"
     assert dialog.save_button.text() == "Save"
+    assert dialog.focusWidget() == dialog.name_input
 
 
 def test_workspace_dialog_supports_initial_values(qgis_app):

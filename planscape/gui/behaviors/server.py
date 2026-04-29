@@ -20,7 +20,7 @@ class ServerBehavior(DockNodeBehavior):
 
     def actions(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> list[QAction]:  # noqa: ARG002
         return [
-            action("Create new Workspace", context, lambda: create_workspace(context)),
+            action("Create new Workspace", context, lambda: create_workspace(context, item)),
             refresh_action(context, item),
             action("Login another env", context, context.login_another_env),
             action("Logout", context, context.logout),
