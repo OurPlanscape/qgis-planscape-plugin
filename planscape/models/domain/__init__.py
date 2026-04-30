@@ -1,4 +1,4 @@
-"""Domain models used by the Planscape plugin UI and services."""
+"""Domain models used by the Planscape plugin UI and API modules."""
 
 from planscape.models.domain.auth import AuthErrorDetails
 from planscape.models.domain.category import Category
