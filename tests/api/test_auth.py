@@ -1,6 +1,6 @@
 import json
 
-from planscape.services import auth_service
+from planscape.api import auth
 
 
 def test_sign_in_request_logs_api_call(monkeypatch):
@@ -11,9 +11,9 @@ def test_sign_in_request_logs_api_call(monkeypatch):
         del url, data
         return json.dumps({"access": "access-token", "refresh": "refresh-token"})
 
-    monkeypatch.setattr(auth_service.logger, "info", lambda message, url: logs.append(message % url))
-    monkeypatch.setattr(auth_service, "post", fake_post)
+    monkeypatch.setattr(auth.logger, "info", lambda message, url: logs.append(message % url))
+    monkeypatch.setattr(auth, "post", fake_post)
 
-    auth_service.sign_in_request("person@example.com", "secret", base_url)
+    auth.sign_in_request("person@example.com", "secret", base_url)
 
     assert logs == [f"[API] POST:{base_url}/dj-rest-auth/login/"]

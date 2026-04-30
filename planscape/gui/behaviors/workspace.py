@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from qgis.PyQt.QtWidgets import QAction
 
 from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, refresh_action
-from planscape.gui.commands.workspace import edit_workspace
+from planscape.gui.commands.workspace import update_workspace
 from planscape.models.domain import DatasetCollection, Model, StyleCollection, UserCollection, Workspace
 
 if TYPE_CHECKING:
@@ -29,5 +29,5 @@ class WorkspaceBehavior(DockNodeBehavior):
             return []
 
         edit_action = QAction("Edit", context.tree)
-        edit_action.triggered.connect(lambda: edit_workspace(model, context, item))
+        edit_action.triggered.connect(lambda: update_workspace(model, context, item))
         return [edit_action, refresh_action(context, item)]

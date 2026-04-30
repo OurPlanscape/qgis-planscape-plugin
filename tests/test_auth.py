@@ -3,11 +3,11 @@ from qgis.core import QgsProcessingException, QgsSettings
 from qgis.PyQt.QtWidgets import QLineEdit
 
 from planscape import auth
+from planscape.api.auth import AuthApiError, LoginTokens
 from planscape.gui.auth_dialog import AuthDialog
 from planscape.processing.import_raster import ImportRasterAlgorithm
 from planscape.processing.import_vector import ImportVectorAlgorithm
 from planscape.qgis_plugin_tools.tools.resources import plugin_name
-from planscape.services.auth_service import AuthServiceError, LoginTokens
 
 
 def _clear_auth_settings() -> None:
@@ -77,13 +77,13 @@ def test_sign_in_stores_environment_and_authcfg_ids(monkeypatch):
     }
 
 
-def test_sign_in_wraps_auth_service_errors(monkeypatch):
+def test_sign_in_wraps_auth_api_errors(monkeypatch):
     _clear_auth_settings()
 
     def fake_sign_in_request(email: str, password: str, base_url: str) -> LoginTokens:
         del email, password, base_url
         message = "Planscape returned an invalid login response."
-        raise AuthServiceError(message)
+        raise AuthApiError(message)
 
     monkeypatch.setattr(auth, "sign_in_request", fake_sign_in_request)
 
@@ -91,14 +91,14 @@ def test_sign_in_wraps_auth_service_errors(monkeypatch):
         auth.sign_in("person@example.com", "secret", "catalog")
 
 
-def test_sign_in_does_not_save_auth_configs_when_service_fails(monkeypatch):
+def test_sign_in_does_not_save_auth_configs_when_api_fails(monkeypatch):
     _clear_auth_settings()
     calls = []
 
     def fake_sign_in_request(email: str, password: str, base_url: str) -> LoginTokens:
         del email, password, base_url
         message = "Planscape login did not return an access token."
-        raise AuthServiceError(message)
+        raise AuthApiError(message)
 
     monkeypatch.setattr(auth, "sign_in_request", fake_sign_in_request)
     monkeypatch.setattr(auth, "_upsert_basic_auth_config", lambda *args: calls.append(args))

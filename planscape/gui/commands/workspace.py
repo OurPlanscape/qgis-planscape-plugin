@@ -5,16 +5,14 @@ from typing import TYPE_CHECKING
 from qgis.PyQt.QtCore import Qt
 
 from planscape import auth
+from planscape.api.workspace import (
+    WorkspaceApiError,
+    create_workspace_request,
+    update_workspace_request,
+)
 from planscape.gui.workspace_dialog import WorkspaceDialog
 from planscape.models.api.workspace import CreateWorkspaceRequest, UpdateWorkspaceRequest
 from planscape.models.domain.workspace import WorkspaceVisibility
-from planscape.services.workspace_service import (
-    WorkspaceServiceError,
-    update_workspace,
-)
-from planscape.services.workspace_service import (
-    create_workspace as create_workspace_request,
-)
 
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QTreeWidgetItem
@@ -38,13 +36,13 @@ def create_workspace(context: DockContext, item: QTreeWidgetItem) -> None:
             auth.ensure_authenticated(),
             request,
         )
-    except WorkspaceServiceError:
+    except WorkspaceApiError:
         return
 
     context.refresh_node(item)
 
 
-def edit_workspace(workspace: Workspace, context: DockContext, item: QTreeWidgetItem) -> None:
+def update_workspace(workspace: Workspace, context: DockContext, item: QTreeWidgetItem) -> None:
     if workspace.id is None:
         return
 
@@ -62,13 +60,13 @@ def edit_workspace(workspace: Workspace, context: DockContext, item: QTreeWidget
         visibility=WorkspaceVisibility(dialog.workspace_visibility().upper()),
     )
     try:
-        updated_workspace = update_workspace(
+        updated_workspace = update_workspace_request(
             auth.get_base_url(auth.get_environment()),
             auth.ensure_authenticated(),
             workspace.id,
             request,
         )
-    except WorkspaceServiceError:
+    except WorkspaceApiError:
         return
 
     item.setText(0, updated_workspace.node_label())

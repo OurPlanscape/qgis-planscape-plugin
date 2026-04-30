@@ -24,11 +24,11 @@ WORKSPACES_PATH = "/v2/admin/workspaces/"
 logger = logging.getLogger(__name__)
 
 
-class WorkspaceServiceError(Exception):
+class WorkspaceApiError(Exception):
     pass
 
 
-def list_workspaces(
+def list_workspaces_request(
     base_url: str,
     authcfg_id: str,
     limit: int | None = None,
@@ -46,10 +46,10 @@ def list_workspaces(
         return PaginatedWorkspaceResponse.from_dict(response).to_domain()
     except WorkspacePayloadError as exc:
         message = "Planscape returned an invalid workspace list response."
-        raise WorkspaceServiceError(message) from exc
+        raise WorkspaceApiError(message) from exc
 
 
-def create_workspace(base_url: str, authcfg_id: str, request: CreateWorkspaceRequest) -> Workspace:
+def create_workspace_request(base_url: str, authcfg_id: str, request: CreateWorkspaceRequest) -> Workspace:
     url = _workspaces_url(base_url)
     logger.info("[API] POST:%s", url)
     response = _request_json(
@@ -59,7 +59,7 @@ def create_workspace(base_url: str, authcfg_id: str, request: CreateWorkspaceReq
     return _workspace_from_response(response)
 
 
-def update_workspace(
+def update_workspace_request(
     base_url: str,
     authcfg_id: str,
     workspace_id: int | str,
@@ -79,7 +79,7 @@ def _workspace_from_response(response: dict[str, object]) -> Workspace:
         return WorkspaceResponse.from_dict(response).to_domain()
     except WorkspacePayloadError as exc:
         message = "Planscape returned an invalid workspace response."
-        raise WorkspaceServiceError(message) from exc
+        raise WorkspaceApiError(message) from exc
 
 
 def _request_json(request: Callable[[], str], failure_message: str) -> dict[str, object]:
@@ -87,17 +87,17 @@ def _request_json(request: Callable[[], str], failure_message: str) -> dict[str,
         response = request()
     except QgsPluginException as exc:
         message = f"{failure_message}: {exc}"
-        raise WorkspaceServiceError(message) from exc
+        raise WorkspaceApiError(message) from exc
 
     try:
         body = json.loads(response)
     except json.JSONDecodeError as exc:
         message = "Planscape returned an invalid JSON workspace response."
-        raise WorkspaceServiceError(message) from exc
+        raise WorkspaceApiError(message) from exc
 
     if not isinstance(body, dict):
         message = "Planscape returned an invalid workspace response."
-        raise WorkspaceServiceError(message)
+        raise WorkspaceApiError(message)
     return body
 
 

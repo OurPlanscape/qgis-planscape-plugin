@@ -1,4 +1,4 @@
-"""API payload models used by Planscape services."""
+"""API payload models used by Planscape API modules."""
 
 from planscape.models.api.workspace import (
     CreateWorkspaceRequest,

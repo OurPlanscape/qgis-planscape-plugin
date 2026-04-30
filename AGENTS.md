@@ -33,7 +33,8 @@ in Planscape API
 
 - Authorization header: `Authorization: Bearer <token>`
 - Swagger/API schemas in https://dev.planscape.org/planscape-backend/v2/schema/swagger
-- API logic should be located in `planscape/services`
+- API logic should be located in `planscape/api`
+- API call functions should use a `_request` suffix, e.g. `list_workspaces_request`
 - ALL API calls must be logged with `logger.info('[API] <method>:<url>')
 
 ## Git
