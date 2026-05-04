@@ -1,8 +1,10 @@
 import pytest
 from qgis.PyQt.QtWidgets import QWidget
 
+from planscape.api.dataset import DatasetApiError
+from planscape.api.workspace import WorkspaceApiError
 from planscape.gui.behaviors import behavior_for
-from planscape.gui.dock_nodes import NODE_KIND_ROLE, NODE_OBJECT_ROLE
+from planscape.gui.dock_nodes import LOADING_CHILD_LABEL, NODE_KIND_ROLE, NODE_OBJECT_ROLE, model_item
 from planscape.gui.planscape_dock import PlanscapeDockWidget
 from planscape.models.domain import (
     Category,
@@ -32,6 +34,58 @@ def fake_workspace_api(monkeypatch):
         return []
 
     monkeypatch.setattr("planscape.gui.planscape_dock.list_workspaces_request", fake_list_workspaces_request)
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.dataset_collection.auth.get_base_url",
+        lambda environment: f"https://{environment}.example",
+    )
+    monkeypatch.setattr("planscape.gui.behaviors.dataset_collection.auth.ensure_authenticated", lambda: "authcfg-id")
+    monkeypatch.setattr("planscape.gui.behaviors.dataset_collection.auth.get_environment", lambda: "catalog")
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.style_collection.auth.get_base_url",
+        lambda environment: f"https://{environment}.example",
+    )
+    monkeypatch.setattr("planscape.gui.behaviors.style_collection.auth.ensure_authenticated", lambda: "authcfg-id")
+    monkeypatch.setattr("planscape.gui.behaviors.style_collection.auth.get_environment", lambda: "catalog")
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.user_collection.auth.get_base_url",
+        lambda environment: f"https://{environment}.example",
+    )
+    monkeypatch.setattr("planscape.gui.behaviors.user_collection.auth.ensure_authenticated", lambda: "authcfg-id")
+    monkeypatch.setattr("planscape.gui.behaviors.user_collection.auth.get_environment", lambda: "catalog")
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.dataset.auth.get_base_url",
+        lambda environment: f"https://{environment}.example",
+    )
+    monkeypatch.setattr("planscape.gui.behaviors.dataset.auth.ensure_authenticated", lambda: "authcfg-id")
+    monkeypatch.setattr("planscape.gui.behaviors.dataset.auth.get_environment", lambda: "catalog")
+
+    def empty_workspace_children(*args):
+        del args
+        return []
+
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.dataset_collection.list_workspace_datasets_request",
+        empty_workspace_children,
+    )
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.style_collection.list_workspace_styles_request",
+        empty_workspace_children,
+    )
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.user_collection.list_workspace_users_request",
+        empty_workspace_children,
+    )
+
+    class EmptyBrowseTree:
+        def __init__(self):
+            self.categories = []
+            self.datalayers = []
+
+    def empty_browse_tree(*args):
+        del args
+        return EmptyBrowseTree()
+
+    monkeypatch.setattr("planscape.gui.behaviors.dataset.browse_dataset_request", empty_browse_tree)
 
 
 def test_plugin_name():
@@ -275,18 +329,58 @@ def test_planscape_dock_workspace_expands_to_collection_nodes(qgis_app, monkeypa
     ]
 
 
-def test_planscape_dock_dataset_expands_to_collection_nodes(qgis_app, monkeypatch):
+def test_expandable_model_items_show_loading_icon(qgis_app):
+    assert qgis_app is not None
+
+    item = model_item(Workspace(id=7, name="Regional Plan"))
+
+    assert item.childCount() == 1
+    assert item.child(0).text(0) == LOADING_CHILD_LABEL
+    assert not item.child(0).icon(0).isNull()
+
+
+def test_planscape_dock_repaints_loading_item_before_loading_children(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    calls = []
+
+    def fake_process_events():
+        calls.append("process_events")
+
+    def fake_load_children(self, model, context):
+        del self, model, context
+        calls.append("load_children")
+        return [Workspace(id=7, name="Regional Plan")]
+
+    monkeypatch.setattr("planscape.gui.planscape_dock.auth.is_authenticated", lambda: False)
+    monkeypatch.setattr("planscape.gui.planscape_dock.QApplication.processEvents", fake_process_events)
+    monkeypatch.setattr("planscape.gui.behaviors.workspace.WorkspaceBehavior.load_children", fake_load_children)
+
+    dock = PlanscapeDockWidget()
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(model_item(Workspace(id=8, name="Source Workspace")))
+
+    dock._load_item_children(dock.tree.topLevelItem(0))
+
+    assert calls == ["process_events", "load_children"]
+
+
+def test_planscape_dock_dataset_expands_to_data_layers_collection(qgis_app, monkeypatch):
     assert qgis_app is not None
 
     monkeypatch.setattr("planscape.gui.planscape_dock.auth.is_authenticated", lambda: True)
     monkeypatch.setattr("planscape.gui.planscape_dock.auth.get_environment", lambda: "catalog")
 
     dock = PlanscapeDockWidget()
-    dataset_model = Dataset(
-        id=20,
-        name="Base Data",
-        datalayers=[DataLayer(id=30, name="Roads")],
-        categories=[Category(id=40, name="Transportation")],
+    dataset_model = Dataset(id=20, name="Base Data")
+
+    def fake_list_workspace_datasets_request(base_url, authcfg_id, workspace_id):
+        del base_url, authcfg_id, workspace_id
+        return [dataset_model]
+
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.dataset_collection.list_workspace_datasets_request",
+        fake_list_workspace_datasets_request,
     )
     workspace_model = Workspace(id=7, name="Regional Plan", datasets=[dataset_model])
     server = Server(name="Planscape", env="catalog", workspaces=[workspace_model])
@@ -301,11 +395,298 @@ def test_planscape_dock_dataset_expands_to_collection_nodes(qgis_app, monkeypatc
 
     dock._load_item_children(dataset)
 
-    assert [dataset.child(index).text(0) for index in range(dataset.childCount())] == ["Data Layers", "Categories"]
+    assert [dataset.child(index).text(0) for index in range(dataset.childCount())] == ["Data Layers"]
     assert [dataset.child(index).data(0, NODE_KIND_ROLE) for index in range(dataset.childCount())] == [
-        NodeKind.DATALAYER_COLLECTION,
-        NodeKind.CATEGORY_COLLECTION,
+        NodeKind.DATALAYER_COLLECTION
     ]
+
+
+def test_planscape_dock_dataset_browse_builds_nested_datalayer_tree(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {}
+
+    class BrowseTree:
+        def __init__(self):
+            self.categories = [
+                Category(
+                    name="Category A",
+                    path=["Category A"],
+                    datalayers=[DataLayer(id=30, name="DataLayer A1")],
+                ),
+                Category(
+                    name="Category B",
+                    path=["Category B"],
+                    categories=[
+                        Category(
+                            name="Category B1",
+                            path=["Category B", "Category B1"],
+                            datalayers=[DataLayer(id=31, name="DataLayer B1A")],
+                        )
+                    ],
+                    datalayers=[DataLayer(id=32, name="DataLayer B1")],
+                ),
+            ]
+            self.datalayers = []
+
+    def fake_browse_dataset_request(base_url, authcfg_id, dataset_id):
+        captured["base_url"] = base_url
+        captured["authcfg_id"] = authcfg_id
+        captured["dataset_id"] = dataset_id
+        return BrowseTree()
+
+    monkeypatch.setattr("planscape.gui.behaviors.dataset.browse_dataset_request", fake_browse_dataset_request)
+
+    dock = PlanscapeDockWidget()
+    server = Server(name="Planscape", env="catalog", workspaces=[Workspace(id=7, name="Regional Plan")])
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(dock._server_item(server))
+    dock._load_item_children(dock.tree.topLevelItem(0))
+    workspace = dock.tree.topLevelItem(0).child(0)
+    dock._load_item_children(workspace)
+    datasets = workspace.child(0)
+
+    def fake_list_workspace_datasets_request(base_url, authcfg_id, workspace_id):
+        del base_url, authcfg_id, workspace_id
+        return [Dataset(id=20, name="Dataset A")]
+
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.dataset_collection.list_workspace_datasets_request",
+        fake_list_workspace_datasets_request,
+    )
+    dock._load_item_children(datasets)
+    dataset = datasets.child(0)
+
+    dock._load_item_children(dataset)
+    datalayers = dataset.child(0)
+    dock._load_item_children(datalayers)
+    category_b = datalayers.child(1)
+    dock._load_item_children(category_b)
+    category_b1 = category_b.child(0)
+    dock._load_item_children(category_b1)
+
+    assert captured == {"base_url": "https://catalog.example", "authcfg_id": "authcfg-id", "dataset_id": 20}
+    assert datalayers.text(0) == "Data Layers"
+    assert [datalayers.child(index).text(0) for index in range(datalayers.childCount())] == [
+        "Category A",
+        "Category B",
+    ]
+    assert [category_b.child(index).text(0) for index in range(category_b.childCount())] == [
+        "Category B1",
+        "DataLayer B1",
+    ]
+    assert [category_b1.child(index).text(0) for index in range(category_b1.childCount())] == ["DataLayer B1A"]
+
+
+def test_planscape_dock_dataset_browse_error_returns_empty_data_layers(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    def fake_browse_dataset_request(base_url, authcfg_id, dataset_id):
+        del base_url, authcfg_id, dataset_id
+        message = "failed"
+        raise DatasetApiError(message)
+
+    monkeypatch.setattr("planscape.gui.behaviors.dataset.browse_dataset_request", fake_browse_dataset_request)
+
+    dock = PlanscapeDockWidget()
+    item = model_item(Dataset(id=20, name="Dataset A"))
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(item)
+
+    dock._load_item_children(item)
+    datalayers = item.child(0)
+    dock._load_item_children(datalayers)
+
+    assert datalayers.text(0) == "Data Layers"
+    assert datalayers.childCount() == 0
+
+
+def test_planscape_dock_double_click_dispatches_to_datalayer_behavior(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    calls = []
+
+    def fake_double_clicked(self, model, context, item):
+        del self, context, item
+        calls.append(model)
+
+    monkeypatch.setattr("planscape.gui.behaviors.datalayer.DataLayerBehavior.double_clicked", fake_double_clicked)
+
+    dock = PlanscapeDockWidget()
+    datalayer = DataLayer(id=10, name="Parcels", status="READY")
+    item = model_item(datalayer)
+
+    dock._handle_item_double_clicked(item, 0)
+
+    assert calls == [datalayer]
+
+
+def test_datalayer_double_click_adds_ready_layer(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    calls = []
+
+    monkeypatch.setattr("planscape.gui.behaviors.datalayer.add_datalayer_to_project", calls.append)
+
+    dock = PlanscapeDockWidget()
+    datalayer = DataLayer(id=10, name="Parcels", status="READY")
+
+    behavior_for(datalayer).double_clicked(datalayer, dock._context(), model_item(datalayer))
+
+    assert calls == [datalayer]
+
+
+def test_datalayer_double_click_ignores_not_ready_layer(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    calls = []
+
+    monkeypatch.setattr("planscape.gui.behaviors.datalayer.add_datalayer_to_project", calls.append)
+
+    dock = PlanscapeDockWidget()
+    datalayer = DataLayer(id=10, name="Parcels", status="PENDING")
+
+    behavior_for(datalayer).double_clicked(datalayer, dock._context(), model_item(datalayer))
+
+    assert calls == []
+
+
+def test_datalayer_double_click_ignores_missing_id(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    calls = []
+
+    monkeypatch.setattr("planscape.gui.behaviors.datalayer.add_datalayer_to_project", calls.append)
+
+    dock = PlanscapeDockWidget()
+    datalayer = DataLayer(name="Parcels", status="READY")
+
+    behavior_for(datalayer).double_clicked(datalayer, dock._context(), model_item(datalayer))
+
+    assert calls == []
+
+
+def test_planscape_dock_dataset_collection_loads_workspace_datasets(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {}
+
+    def fake_list_workspace_datasets_request(base_url, authcfg_id, workspace_id):
+        captured["base_url"] = base_url
+        captured["authcfg_id"] = authcfg_id
+        captured["workspace_id"] = workspace_id
+        return [Dataset(id=20, name="Base Data")]
+
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.dataset_collection.list_workspace_datasets_request",
+        fake_list_workspace_datasets_request,
+    )
+
+    dock = PlanscapeDockWidget()
+    server = Server(name="Planscape", env="catalog", workspaces=[Workspace(id=7, name="Regional Plan")])
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(dock._server_item(server))
+    dock._load_item_children(dock.tree.topLevelItem(0))
+    workspace = dock.tree.topLevelItem(0).child(0)
+    dock._load_item_children(workspace)
+    datasets = workspace.child(0)
+
+    dock._load_item_children(datasets)
+
+    assert captured == {"base_url": "https://catalog.example", "authcfg_id": "authcfg-id", "workspace_id": 7}
+    assert datasets.childCount() == 1
+    assert datasets.child(0).text(0) == "Base Data"
+
+
+def test_planscape_dock_style_collection_loads_workspace_styles(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {}
+
+    def fake_list_workspace_styles_request(base_url, authcfg_id, workspace_id):
+        captured["base_url"] = base_url
+        captured["authcfg_id"] = authcfg_id
+        captured["workspace_id"] = workspace_id
+        return [Style(id=30, name="Default")]
+
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.style_collection.list_workspace_styles_request",
+        fake_list_workspace_styles_request,
+    )
+
+    dock = PlanscapeDockWidget()
+    server = Server(name="Planscape", env="catalog", workspaces=[Workspace(id=7, name="Regional Plan")])
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(dock._server_item(server))
+    dock._load_item_children(dock.tree.topLevelItem(0))
+    workspace = dock.tree.topLevelItem(0).child(0)
+    dock._load_item_children(workspace)
+    styles = workspace.child(1)
+
+    dock._load_item_children(styles)
+
+    assert captured == {"base_url": "https://catalog.example", "authcfg_id": "authcfg-id", "workspace_id": 7}
+    assert styles.childCount() == 1
+    assert styles.child(0).text(0) == "Default"
+
+
+def test_planscape_dock_user_collection_loads_workspace_users(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {}
+
+    def fake_list_workspace_users_request(base_url, authcfg_id, workspace_id):
+        captured["base_url"] = base_url
+        captured["authcfg_id"] = authcfg_id
+        captured["workspace_id"] = workspace_id
+        return [User(id=40, name="Regional Planner", email="planner@example.test")]
+
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.user_collection.list_workspace_users_request",
+        fake_list_workspace_users_request,
+    )
+
+    dock = PlanscapeDockWidget()
+    server = Server(name="Planscape", env="catalog", workspaces=[Workspace(id=7, name="Regional Plan")])
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(dock._server_item(server))
+    dock._load_item_children(dock.tree.topLevelItem(0))
+    workspace = dock.tree.topLevelItem(0).child(0)
+    dock._load_item_children(workspace)
+    users = workspace.child(2)
+
+    dock._load_item_children(users)
+
+    assert captured == {"base_url": "https://catalog.example", "authcfg_id": "authcfg-id", "workspace_id": 7}
+    assert users.childCount() == 1
+    assert users.child(0).text(0) == "Regional Planner"
+
+
+def test_planscape_dock_collection_api_error_returns_empty_children(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    def fake_list_workspace_datasets_request(base_url, authcfg_id, workspace_id):
+        del base_url, authcfg_id, workspace_id
+        message = "failed"
+        raise WorkspaceApiError(message)
+
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.dataset_collection.list_workspace_datasets_request",
+        fake_list_workspace_datasets_request,
+    )
+
+    dock = PlanscapeDockWidget()
+    server = Server(name="Planscape", env="catalog", workspaces=[Workspace(id=7, name="Regional Plan")])
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(dock._server_item(server))
+    dock._load_item_children(dock.tree.topLevelItem(0))
+    workspace = dock.tree.topLevelItem(0).child(0)
+    dock._load_item_children(workspace)
+    datasets = workspace.child(0)
+
+    dock._load_item_children(datasets)
+
+    assert datasets.childCount() == 0
 
 
 def test_planscape_dock_click_login_opens_auth_and_refreshes(qgis_app, monkeypatch):

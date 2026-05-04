@@ -7,13 +7,15 @@ from planscape.gui.commands.workspace import create_workspace
 from planscape.models.domain import Model, Server
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from qgis.PyQt.QtWidgets import QAction, QTreeWidgetItem
 
 
 class ServerBehavior(DockNodeBehavior):
     has_children = True
 
-    def load_children(self, model: Model, context: DockContext) -> list[Model]:  # noqa: ARG002
+    def load_children(self, model: Model, context: DockContext) -> Sequence[Model]:  # noqa: ARG002
         if not isinstance(model, Server):
             return []
         return list(model.workspaces)

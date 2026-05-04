@@ -6,13 +6,15 @@ from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, 
 from planscape.models.domain import CategoryCollection, Model
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from qgis.PyQt.QtWidgets import QAction, QTreeWidgetItem
 
 
 class CategoryCollectionBehavior(DockNodeBehavior):
     has_children = True
 
-    def load_children(self, model: Model, context: DockContext) -> list[Model]:  # noqa: ARG002
+    def load_children(self, model: Model, context: DockContext) -> Sequence[Model]:  # noqa: ARG002
         if not isinstance(model, CategoryCollection):
             return []
         return list(model.categories)

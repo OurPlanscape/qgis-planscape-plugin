@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QDockWidget, QMenu, QTreeWidget, QTreeWidgetItem, QWidget
+from qgis.PyQt.QtWidgets import QApplication, QDockWidget, QMenu, QTreeWidget, QTreeWidgetItem, QWidget
 from qgis.utils import iface
 
 from planscape import auth
@@ -9,6 +9,7 @@ from planscape.api.workspace import WorkspaceApiError, list_workspaces_request
 from planscape.gui.auth_dialog import AuthDialog
 from planscape.gui.behaviors import DockContext, behavior_for
 from planscape.gui.dock_nodes import (
+    add_loading_child,
     item_kind,
     item_node,
     login_item,
@@ -27,6 +28,7 @@ class PlanscapeDockWidget(QDockWidget):
         self.tree.setHeaderHidden(True)
         self.tree.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.tree.itemClicked.connect(self._handle_item_clicked)
+        self.tree.itemDoubleClicked.connect(self._handle_item_double_clicked)
         self.tree.itemExpanded.connect(self._load_item_children)
         self.tree.customContextMenuRequested.connect(self._show_context_menu)
 
@@ -59,6 +61,13 @@ class PlanscapeDockWidget(QDockWidget):
         dialog = AuthDialog(parent=iface.mainWindow())
         dialog.exec()
         self.refresh_tree()
+
+    def _handle_item_double_clicked(self, item: QTreeWidgetItem, column: int) -> None:
+        del column
+        node = item_node(item)
+        if not isinstance(node, Model):
+            return
+        behavior_for(node).double_clicked(node, self._context(), item)
 
     def _show_context_menu(self, position) -> None:
         item = self.tree.itemAt(position)
@@ -122,6 +131,10 @@ class PlanscapeDockWidget(QDockWidget):
         behavior = behavior_for(node)
         if not behavior.has_children:
             return
+
+        item.takeChildren()
+        add_loading_child(item)
+        QApplication.processEvents()
 
         item.takeChildren()
         for child_model in behavior.load_children(node, self._context()):

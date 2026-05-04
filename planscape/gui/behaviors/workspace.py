@@ -9,13 +9,15 @@ from planscape.gui.commands.workspace import update_workspace
 from planscape.models.domain import DatasetCollection, Model, StyleCollection, UserCollection, Workspace
 
 if TYPE_CHECKING:
+    from collections.abc import Sequence
+
     from qgis.PyQt.QtWidgets import QTreeWidgetItem
 
 
 class WorkspaceBehavior(DockNodeBehavior):
     has_children = True
 
-    def load_children(self, model: Model, context: DockContext) -> list[Model]:  # noqa: ARG002
+    def load_children(self, model: Model, context: DockContext) -> Sequence[Model]:  # noqa: ARG002
         if not isinstance(model, Workspace):
             return []
         return [

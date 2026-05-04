@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from qgis.PyQt.QtCore import Qt
-from qgis.PyQt.QtWidgets import QTreeWidgetItem
+from qgis.PyQt.QtGui import QIcon
+from qgis.PyQt.QtWidgets import QApplication, QStyle, QTreeWidgetItem
 
 from planscape.gui.behaviors import behavior_for
 from planscape.models.domain import LoginNode, Model, NodeKind, Server, Workspace
@@ -50,7 +51,26 @@ def model_item(model: Model) -> QTreeWidgetItem:
 
 
 def add_loading_child(item: QTreeWidgetItem) -> None:
-    item.addChild(QTreeWidgetItem([LOADING_CHILD_LABEL]))
+    item.addChild(loading_item())
+
+
+def loading_item() -> QTreeWidgetItem:
+    item = QTreeWidgetItem([LOADING_CHILD_LABEL])
+    icon = _loading_icon()
+    if not icon.isNull():
+        item.setIcon(0, icon)
+    return item
+
+
+def _loading_icon() -> QIcon:
+    icon = QIcon.fromTheme("view-refresh")
+    if not icon.isNull():
+        return icon
+
+    app = QApplication.instance()
+    if app is None:
+        return QIcon()
+    return app.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload)
 
 
 def item_kind(item: QTreeWidgetItem) -> NodeKind | None:

@@ -3,6 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from planscape.models.domain.dataset import Dataset
+from planscape.models.domain.style import Style
+from planscape.models.domain.user import User
 from planscape.models.domain.workspace import Workspace, WorkspaceVisibility
 
 
@@ -88,6 +91,122 @@ class PaginatedWorkspaceResponse:
 
     def to_domain(self) -> list[Workspace]:
         return [workspace.to_domain() for workspace in self.results]
+
+
+@dataclass(frozen=True)
+class WorkspaceDatasetResponse:
+    id: int
+    name: str
+    visibility: WorkspaceVisibility = WorkspaceVisibility.PRIVATE
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> WorkspaceDatasetResponse:
+        if not isinstance(payload, dict):
+            message = "Workspace dataset response must be an object."
+            raise WorkspacePayloadError(message)
+
+        return cls(
+            id=_required_int(payload.get("id"), "id"),
+            name=_required_string(payload.get("name"), "name"),
+            visibility=_visibility(payload.get("visibility", WorkspaceVisibility.PRIVATE.value)),
+        )
+
+    def to_domain(self) -> Dataset:
+        return Dataset(id=self.id, name=self.name)
+
+
+@dataclass(frozen=True)
+class WorkspaceStyleResponse:
+    id: int
+    name: str
+    type: str = "RASTER"
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> WorkspaceStyleResponse:
+        if not isinstance(payload, dict):
+            message = "Workspace style response must be an object."
+            raise WorkspacePayloadError(message)
+
+        return cls(
+            id=_required_int(payload.get("id"), "id"),
+            name=_required_string(payload.get("name"), "name"),
+            type=_optional_string(payload.get("type"), "type") or "RASTER",
+        )
+
+    def to_domain(self) -> Style:
+        return Style(id=self.id, name=self.name)
+
+
+@dataclass(frozen=True)
+class WorkspaceUserAccessResponse:
+    user_id: int
+    email: str
+    first_name: str
+    last_name: str
+    role: str = "VIEWER"
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> WorkspaceUserAccessResponse:
+        if not isinstance(payload, dict):
+            message = "Workspace user access response must be an object."
+            raise WorkspacePayloadError(message)
+
+        return cls(
+            user_id=_required_int(payload.get("user_id"), "user_id"),
+            email=_required_string(payload.get("email"), "email"),
+            first_name=_required_string(payload.get("first_name"), "first_name"),
+            last_name=_required_string(payload.get("last_name"), "last_name"),
+            role=_optional_string(payload.get("role"), "role") or "VIEWER",
+        )
+
+    def to_domain(self) -> User:
+        name = f"{self.first_name} {self.last_name}".strip() or self.email
+        return User(id=self.user_id, name=name, email=self.email)
+
+
+@dataclass(frozen=True)
+class WorkspaceDatasetListResponse:
+    results: list[WorkspaceDatasetResponse] = field(default_factory=list)
+
+    @classmethod
+    def from_list(cls, payload: list[Any]) -> WorkspaceDatasetListResponse:
+        if not isinstance(payload, list):
+            message = "Workspace dataset list response must be a list."
+            raise WorkspacePayloadError(message)
+        return cls(results=[WorkspaceDatasetResponse.from_dict(item) for item in payload])
+
+    def to_domain(self) -> list[Dataset]:
+        return [dataset.to_domain() for dataset in self.results]
+
+
+@dataclass(frozen=True)
+class WorkspaceStyleListResponse:
+    results: list[WorkspaceStyleResponse] = field(default_factory=list)
+
+    @classmethod
+    def from_list(cls, payload: list[Any]) -> WorkspaceStyleListResponse:
+        if not isinstance(payload, list):
+            message = "Workspace style list response must be a list."
+            raise WorkspacePayloadError(message)
+        return cls(results=[WorkspaceStyleResponse.from_dict(item) for item in payload])
+
+    def to_domain(self) -> list[Style]:
+        return [style.to_domain() for style in self.results]
+
+
+@dataclass(frozen=True)
+class WorkspaceUserAccessListResponse:
+    results: list[WorkspaceUserAccessResponse] = field(default_factory=list)
+
+    @classmethod
+    def from_list(cls, payload: list[Any]) -> WorkspaceUserAccessListResponse:
+        if not isinstance(payload, list):
+            message = "Workspace user access list response must be a list."
+            raise WorkspacePayloadError(message)
+        return cls(results=[WorkspaceUserAccessResponse.from_dict(item) for item in payload])
+
+    def to_domain(self) -> list[User]:
+        return [user.to_domain() for user in self.results]
 
 
 def _required_string(value: Any, field_name: str) -> str:
