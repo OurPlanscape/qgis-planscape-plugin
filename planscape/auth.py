@@ -23,6 +23,7 @@ ENVIRONMENT_SETTING_KEY = "auth/environment"
 EMAIL_SETTING_KEY = "auth/email"
 CREDENTIALS_AUTHCFG_KEY = "auth/credentials_authcfg"
 TOKEN_AUTHCFG_KEY = "auth/token_authcfg"  # noqa: S105
+AUTO_LOGIN_DISABLED_KEY = "auth/auto_login_disabled"
 AUTH_REQUIRED_MESSAGE = "Planscape authentication is required. Open the Planscape plugin and sign in first."
 
 
@@ -90,19 +91,53 @@ def get_token_authcfg_id() -> str:
     return str(get_setting(TOKEN_AUTHCFG_KEY, "", str))
 
 
+def get_credentials_authcfg_id() -> str:
+    return str(get_setting(CREDENTIALS_AUTHCFG_KEY, "", str))
+
+
+def is_auto_login_disabled() -> bool:
+    return bool(get_setting(AUTO_LOGIN_DISABLED_KEY, False, _bool_setting))
+
+
 def is_authenticated() -> bool:
     authcfg_id = get_token_authcfg_id()
     if not authcfg_id:
         return False
-    return _load_auth_config(authcfg_id) is not None
+    return _load_token_auth_config(authcfg_id) is not None
 
 
 def ensure_authenticated() -> str:
     authcfg_id = get_token_authcfg_id()
-    if authcfg_id and _load_auth_config(authcfg_id) is not None:
+    if authcfg_id and _load_token_auth_config(authcfg_id) is not None:
         return authcfg_id
 
     raise QgsProcessingException(AUTH_REQUIRED_MESSAGE)
+
+
+def restore_authenticated_session() -> bool:
+    if is_authenticated():
+        return True
+    if is_auto_login_disabled():
+        _clear_authenticated_session()
+        return False
+
+    environment = get_environment()
+    credentials = _load_saved_credentials(environment)
+    if credentials is None:
+        _clear_authenticated_session()
+        return False
+
+    email, password = credentials
+    try:
+        sign_in(email, password, environment)
+    except PlanscapeAuthError:
+        _clear_authenticated_session()
+        return False
+
+    if not is_authenticated():
+        _clear_authenticated_session()
+        return False
+    return True
 
 
 def sign_in(email: str, password: str, environment: str) -> LoginResult:
@@ -126,11 +161,17 @@ def sign_in(email: str, password: str, environment: str) -> LoginResult:
 
     set_setting(CREDENTIALS_AUTHCFG_KEY, credentials_authcfg_id)
     set_setting(TOKEN_AUTHCFG_KEY, token_authcfg_id)
+    set_setting(AUTO_LOGIN_DISABLED_KEY, False)
 
     return LoginResult(access_token=tokens.access_token, refresh_token=tokens.refresh_token)
 
 
 def sign_out() -> None:
+    _clear_authenticated_session()
+    set_setting(AUTO_LOGIN_DISABLED_KEY, True)
+
+
+def _clear_authenticated_session() -> None:
     token_authcfg_id = get_token_authcfg_id()
     if token_authcfg_id:
         _remove_auth_config(token_authcfg_id)
@@ -152,8 +193,38 @@ def _load_auth_config(authcfg_id: str, *, full: bool = False) -> QgsAuthMethodCo
     return loaded_config
 
 
+def _load_token_auth_config(authcfg_id: str) -> QgsAuthMethodConfig | None:
+    config = _load_auth_config(authcfg_id, full=True)
+    if config is None or config.method() != "APIHeader":
+        return None
+    if config.config("header") != "Authorization":
+        return None
+    if not config.config("value").startswith("Bearer "):
+        return None
+    return config
+
+
 def _remove_auth_config(authcfg_id: str) -> None:
     _auth_manager().removeAuthenticationConfig(authcfg_id)
+
+
+def _load_saved_credentials(environment: str) -> tuple[str, str] | None:
+    authcfg_id = get_credentials_authcfg_id()
+    config = _load_auth_config(authcfg_id, full=True)
+    if config is None or config.method() != "Basic" or config.uri() != get_base_url(environment):
+        return None
+
+    email = config.config("username")
+    password = config.config("password")
+    if not email or not password:
+        return None
+    return email, password
+
+
+def _bool_setting(value: object) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value).lower() in {"1", "true", "yes"}
 
 
 def _upsert_basic_auth_config(email: str, password: str, environment: str) -> str:
@@ -174,7 +245,8 @@ def _upsert_token_auth_config(access_token: str, environment: str) -> str:
     config.setName(f"{plugin_name()} {environment} bearer token")
     config.setUri(get_base_url(environment))
     config.clearConfigMap()
-    config.setConfig("Authorization", f"Bearer {access_token}")
+    config.setConfig("header", "Authorization")
+    config.setConfig("value", f"Bearer {access_token}")
     return _save_auth_config(config, authcfg_id)
 
 

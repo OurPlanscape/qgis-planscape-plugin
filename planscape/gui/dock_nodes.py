@@ -8,6 +8,7 @@ from qgis.PyQt.QtWidgets import QApplication, QStyle, QTreeWidgetItem
 
 from planscape.gui.behaviors import behavior_for
 from planscape.models.domain import LoginNode, Model, NodeKind, Server, Workspace
+from planscape.qgis_plugin_tools.tools.resources import resources_path
 
 NODE_OBJECT_ROLE = Qt.ItemDataRole.UserRole
 NODE_KIND_ROLE = Qt.ItemDataRole.UserRole + 1
@@ -28,6 +29,9 @@ class DockNode:
         item = QTreeWidgetItem([self.label()])
         item.setData(0, NODE_OBJECT_ROLE, self.model)
         item.setData(0, NODE_KIND_ROLE, self.node_kind())
+        icon = _node_icon(self.node_kind())
+        if not icon.isNull():
+            item.setIcon(0, icon)
         return item
 
 
@@ -71,6 +75,23 @@ def _loading_icon() -> QIcon:
     if app is None:
         return QIcon()
     return app.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload)
+
+
+def _node_icon(kind: NodeKind) -> QIcon:
+    icon_paths = {
+        NodeKind.LOGIN: resources_path("icons", "planscape", "planscape-bw.png"),
+        NodeKind.SERVER: resources_path("icons", "planscape", "planscape-color.png"),
+        NodeKind.DATASET_COLLECTION: resources_path("icons", "planscape", "datasets.png"),
+        NodeKind.DATALAYER_COLLECTION: resources_path("icons", "planscape", "datalayers.png"),
+        NodeKind.STYLE_COLLECTION: resources_path("icons", "planscape", "styles.png"),
+    }
+    if kind in icon_paths:
+        return QIcon(icon_paths[kind])
+    if kind == NodeKind.WORKSPACE:
+        app = QApplication.instance()
+        if app is not None:
+            return app.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon)
+    return QIcon()
 
 
 def item_kind(item: QTreeWidgetItem) -> NodeKind | None:

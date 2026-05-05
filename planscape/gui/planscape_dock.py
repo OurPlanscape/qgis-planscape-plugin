@@ -37,6 +37,7 @@ class PlanscapeDockWidget(QDockWidget):
 
     def refresh_tree(self) -> None:
         self.tree.clear()
+        self._restore_authenticated_session()
 
         root = self._root_item()
         self.tree.addTopLevelItem(root)
@@ -98,6 +99,10 @@ class PlanscapeDockWidget(QDockWidget):
     def _server_item(self, server: Server) -> QTreeWidgetItem:
         return server_item(server)
 
+    def _restore_authenticated_session(self) -> None:
+        if not auth.is_authenticated():
+            auth.restore_authenticated_session()
+
     def _context(self) -> DockContext:
         return DockContext(
             tree=self.tree,
@@ -143,6 +148,8 @@ class PlanscapeDockWidget(QDockWidget):
             if child_model.node_key() in expanded_keys:
                 child_item.setExpanded(True)
                 self._replace_item_children(child_item, expanded_keys=expanded_keys)
+        self.tree.viewport().update()
+        QApplication.processEvents()
 
     def _expanded_node_keys(self, item: QTreeWidgetItem) -> set[str]:
         keys: set[str] = set()

@@ -9,11 +9,14 @@ from planscape.gui.planscape_dock import PlanscapeDockWidget
 from planscape.models.domain import (
     Category,
     DataLayer,
+    DataLayerCollection,
     Dataset,
+    DatasetCollection,
     LoginNode,
     NodeKind,
     Server,
     Style,
+    StyleCollection,
     User,
     Workspace,
     WorkspaceVisibility,
@@ -28,6 +31,7 @@ def fake_workspace_api(monkeypatch):
         "planscape.gui.planscape_dock.auth.get_base_url", lambda environment: f"https://{environment}.example"
     )
     monkeypatch.setattr("planscape.gui.planscape_dock.auth.ensure_authenticated", lambda: "authcfg-id")
+    monkeypatch.setattr("planscape.gui.planscape_dock.auth.restore_authenticated_session", lambda: False)
 
     def fake_list_workspaces_request(base_url: str, authcfg_id: str) -> list[Workspace]:
         del base_url, authcfg_id
@@ -213,6 +217,7 @@ def test_planscape_dock_shows_login_root_when_unauthenticated(qgis_app, monkeypa
     assert dock.tree.topLevelItem(0).text(0) == "Click to login"
     assert dock.tree.topLevelItem(0).data(0, NODE_KIND_ROLE) == NodeKind.LOGIN
     assert dock.tree.topLevelItem(0).data(0, NODE_OBJECT_ROLE) == LoginNode()
+    assert not dock.tree.topLevelItem(0).icon(0).isNull()
 
 
 def test_planscape_dock_shows_environment_when_authenticated(qgis_app, monkeypatch):
@@ -226,6 +231,7 @@ def test_planscape_dock_shows_environment_when_authenticated(qgis_app, monkeypat
     assert dock.tree.topLevelItem(0).text(0) == "Planscape (catalog)"
     assert dock.tree.topLevelItem(0).data(0, NODE_KIND_ROLE) == NodeKind.SERVER
     assert dock.tree.topLevelItem(0).data(0, NODE_OBJECT_ROLE) == Server(name="Planscape", env="catalog")
+    assert not dock.tree.topLevelItem(0).icon(0).isNull()
     assert dock.tree.topLevelItem(0).childCount() == 0
 
 
@@ -252,6 +258,60 @@ def test_planscape_dock_loads_workspaces_when_authenticated(qgis_app, monkeypatc
     assert root.child(0).data(0, NODE_OBJECT_ROLE) == Workspace(id=7, name="Regional Plan")
 
 
+def test_planscape_dock_restores_saved_session_and_loads_workspaces(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    auth_state = {"authenticated": False}
+    captured = {}
+
+    def fake_restore_authenticated_session() -> bool:
+        auth_state["authenticated"] = True
+        return True
+
+    def fake_list_workspaces_request(base_url: str, authcfg_id: str) -> list[Workspace]:
+        captured["base_url"] = base_url
+        captured["authcfg_id"] = authcfg_id
+        return [Workspace(id=8, name="Saved Session Workspace")]
+
+    monkeypatch.setattr("planscape.gui.planscape_dock.auth.is_authenticated", lambda: auth_state["authenticated"])
+    monkeypatch.setattr("planscape.gui.planscape_dock.auth.get_environment", lambda: "catalog")
+    monkeypatch.setattr(
+        "planscape.gui.planscape_dock.auth.restore_authenticated_session",
+        fake_restore_authenticated_session,
+    )
+    monkeypatch.setattr("planscape.gui.planscape_dock.list_workspaces_request", fake_list_workspaces_request)
+
+    dock = PlanscapeDockWidget()
+    root = dock.tree.topLevelItem(0)
+
+    assert root.text(0) == "Planscape (catalog)"
+    assert captured == {"base_url": "https://catalog.example", "authcfg_id": "authcfg-id"}
+    assert root.childCount() == 1
+    assert root.child(0).text(0) == "Saved Session Workspace"
+
+
+def test_planscape_dock_failed_session_restore_shows_login_root(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    state = {"restore_called": False}
+
+    def fake_restore_authenticated_session() -> bool:
+        state["restore_called"] = True
+        return False
+
+    monkeypatch.setattr("planscape.gui.planscape_dock.auth.is_authenticated", lambda: False)
+    monkeypatch.setattr(
+        "planscape.gui.planscape_dock.auth.restore_authenticated_session",
+        fake_restore_authenticated_session,
+    )
+
+    dock = PlanscapeDockWidget()
+
+    assert state["restore_called"] is True
+    assert dock.tree.topLevelItem(0).text(0) == "Click to login"
+    assert dock.tree.topLevelItem(0).data(0, NODE_KIND_ROLE) == NodeKind.LOGIN
+
+
 def test_planscape_dock_server_lists_workspace_children(qgis_app, monkeypatch):
     assert qgis_app is not None
 
@@ -268,6 +328,7 @@ def test_planscape_dock_server_lists_workspace_children(qgis_app, monkeypatch):
     assert workspace.text(0) == "Regional Plan"
     assert workspace.data(0, NODE_KIND_ROLE) == NodeKind.WORKSPACE
     assert workspace.data(0, NODE_OBJECT_ROLE) == Workspace(id=7, name="Regional Plan")
+    assert not workspace.icon(0).isNull()
 
 
 def test_planscape_dock_refresh_reloads_server_children_from_api(qgis_app, monkeypatch):
@@ -339,6 +400,30 @@ def test_expandable_model_items_show_loading_icon(qgis_app):
     assert not item.child(0).icon(0).isNull()
 
 
+def test_collection_model_items_show_distinguishing_icons(qgis_app):
+    assert qgis_app is not None
+
+    items = [
+        model_item(DatasetCollection()),
+        model_item(DataLayerCollection()),
+        model_item(StyleCollection()),
+    ]
+
+    assert all(not item.icon(0).isNull() for item in items)
+
+
+def test_resource_model_items_do_not_show_distinguishing_icons(qgis_app):
+    assert qgis_app is not None
+
+    items = [
+        model_item(Dataset(id=20, name="Dataset A")),
+        model_item(DataLayer(id=30, name="DataLayer A")),
+        model_item(Style(id=40, name="Style A")),
+    ]
+
+    assert all(item.icon(0).isNull() for item in items)
+
+
 def test_planscape_dock_repaints_loading_item_before_loading_children(qgis_app, monkeypatch):
     assert qgis_app is not None
 
@@ -362,7 +447,7 @@ def test_planscape_dock_repaints_loading_item_before_loading_children(qgis_app, 
 
     dock._load_item_children(dock.tree.topLevelItem(0))
 
-    assert calls == ["process_events", "load_children"]
+    assert calls == ["process_events", "load_children", "process_events"]
 
 
 def test_planscape_dock_dataset_expands_to_data_layers_collection(qgis_app, monkeypatch):
