@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 from qgis.PyQt.QtWidgets import QAction, QTreeWidget, QTreeWidgetItem, QWidget
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Sequence
 
     from planscape.models.domain import Model
 
@@ -23,7 +23,7 @@ class DockContext:
 class DockNodeBehavior:
     has_children = False
 
-    def load_children(self, model: Model, context: DockContext) -> list[Model]:  # noqa: ARG002
+    def load_children(self, model: Model, context: DockContext) -> Sequence[Model]:  # noqa: ARG002
         return []
 
     def actions(
@@ -33,6 +33,14 @@ class DockNodeBehavior:
         item: QTreeWidgetItem,  # noqa: ARG002
     ) -> list[QAction]:
         return []
+
+    def double_clicked(
+        self,
+        model: Model,  # noqa: ARG002
+        context: DockContext,  # noqa: ARG002
+        item: QTreeWidgetItem,  # noqa: ARG002
+    ) -> None:
+        return
 
 
 def action(text: str, context: DockContext, callback: Callable[[], None]) -> QAction:

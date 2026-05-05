@@ -8,8 +8,11 @@ from planscape.models.api.workspace import (
     CreateWorkspaceRequest,
     PaginatedWorkspaceResponse,
     UpdateWorkspaceRequest,
+    WorkspaceDatasetListResponse,
     WorkspacePayloadError,
     WorkspaceResponse,
+    WorkspaceStyleListResponse,
+    WorkspaceUserAccessListResponse,
 )
 from planscape.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from planscape.qgis_plugin_tools.tools.network import fetch, post
@@ -18,6 +21,9 @@ from planscape.tools.network import put
 if TYPE_CHECKING:
     from collections.abc import Callable
 
+    from planscape.models.domain.dataset import Dataset
+    from planscape.models.domain.style import Style
+    from planscape.models.domain.user import User
     from planscape.models.domain.workspace import Workspace
 
 WORKSPACES_PATH = "/v2/admin/workspaces/"
@@ -74,6 +80,51 @@ def update_workspace_request(
     return _workspace_from_response(response)
 
 
+def list_workspace_datasets_request(base_url: str, authcfg_id: str, workspace_id: int | str) -> list[Dataset]:
+    url = _workspace_child_url(base_url, workspace_id, "datasets")
+    logger.info("[API] GET:%s", url)
+    response = _request_json_list(
+        lambda: fetch(url, authcfg_id=authcfg_id),
+        "Planscape workspace dataset list request failed",
+    )
+
+    try:
+        return WorkspaceDatasetListResponse.from_list(response).to_domain()
+    except WorkspacePayloadError as exc:
+        message = "Planscape returned an invalid workspace dataset list response."
+        raise WorkspaceApiError(message) from exc
+
+
+def list_workspace_styles_request(base_url: str, authcfg_id: str, workspace_id: int | str) -> list[Style]:
+    url = _workspace_child_url(base_url, workspace_id, "styles")
+    logger.info("[API] GET:%s", url)
+    response = _request_json_list(
+        lambda: fetch(url, authcfg_id=authcfg_id),
+        "Planscape workspace style list request failed",
+    )
+
+    try:
+        return WorkspaceStyleListResponse.from_list(response).to_domain()
+    except WorkspacePayloadError as exc:
+        message = "Planscape returned an invalid workspace style list response."
+        raise WorkspaceApiError(message) from exc
+
+
+def list_workspace_users_request(base_url: str, authcfg_id: str, workspace_id: int | str) -> list[User]:
+    url = _workspace_child_url(base_url, workspace_id, "users")
+    logger.info("[API] GET:%s", url)
+    response = _request_json_list(
+        lambda: fetch(url, authcfg_id=authcfg_id),
+        "Planscape workspace user list request failed",
+    )
+
+    try:
+        return WorkspaceUserAccessListResponse.from_list(response).to_domain()
+    except WorkspacePayloadError as exc:
+        message = "Planscape returned an invalid workspace user list response."
+        raise WorkspaceApiError(message) from exc
+
+
 def _workspace_from_response(response: dict[str, object]) -> Workspace:
     try:
         return WorkspaceResponse.from_dict(response).to_domain()
@@ -101,6 +152,25 @@ def _request_json(request: Callable[[], str], failure_message: str) -> dict[str,
     return body
 
 
+def _request_json_list(request: Callable[[], str], failure_message: str) -> list[object]:
+    try:
+        response = request()
+    except QgsPluginException as exc:
+        message = f"{failure_message}: {exc}"
+        raise WorkspaceApiError(message) from exc
+
+    try:
+        body = json.loads(response)
+    except json.JSONDecodeError as exc:
+        message = "Planscape returned an invalid JSON workspace response."
+        raise WorkspaceApiError(message) from exc
+
+    if not isinstance(body, list):
+        message = "Planscape returned an invalid workspace list response."
+        raise WorkspaceApiError(message)
+    return body
+
+
 def _pagination_params(limit: int | None, offset: int | None) -> dict[str, str] | None:
     params = {}
     if limit is not None:
@@ -116,3 +186,7 @@ def _workspaces_url(base_url: str) -> str:
 
 def _workspace_url(base_url: str, workspace_id: int | str) -> str:
     return f"{_workspaces_url(base_url)}{workspace_id}/"
+
+
+def _workspace_child_url(base_url: str, workspace_id: int | str, child: str) -> str:
+    return f"{_workspace_url(base_url, workspace_id)}{child}/"

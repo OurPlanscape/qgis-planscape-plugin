@@ -4,10 +4,13 @@ from planscape.models.api.workspace import (
     CreateWorkspaceRequest,
     PaginatedWorkspaceResponse,
     UpdateWorkspaceRequest,
+    WorkspaceDatasetListResponse,
     WorkspacePayloadError,
     WorkspaceResponse,
+    WorkspaceStyleListResponse,
+    WorkspaceUserAccessListResponse,
 )
-from planscape.models.domain import Workspace, WorkspaceVisibility
+from planscape.models.domain import Dataset, Style, User, Workspace, WorkspaceVisibility
 
 
 def test_create_workspace_request_serializes_payload():
@@ -88,3 +91,41 @@ def test_workspace_response_rejects_invalid_visibility():
 def test_paginated_workspace_response_rejects_invalid_results_shape():
     with pytest.raises(WorkspacePayloadError, match="results must be a list"):
         PaginatedWorkspaceResponse.from_dict({"count": 1, "results": {}})
+
+
+def test_workspace_dataset_list_response_parses_raw_list():
+    response = WorkspaceDatasetListResponse.from_list([{"id": 20, "name": "Base Data", "visibility": "PUBLIC"}])
+
+    assert response.to_domain() == [Dataset(id=20, name="Base Data")]
+
+
+def test_workspace_style_list_response_parses_raw_list():
+    response = WorkspaceStyleListResponse.from_list([{"id": 30, "name": "Default", "type": "VECTOR"}])
+
+    assert response.to_domain() == [Style(id=30, name="Default")]
+
+
+def test_workspace_user_access_list_response_parses_raw_list():
+    response = WorkspaceUserAccessListResponse.from_list(
+        [
+            {
+                "user_id": 40,
+                "email": "planner@example.test",
+                "first_name": "Regional",
+                "last_name": "Planner",
+                "role": "OWNER",
+            }
+        ]
+    )
+
+    assert response.to_domain() == [User(id=40, name="Regional Planner", email="planner@example.test")]
+
+
+def test_workspace_child_list_response_rejects_paginated_shape():
+    with pytest.raises(WorkspacePayloadError, match="must be a list"):
+        WorkspaceDatasetListResponse.from_list({"count": 1, "results": []})  # type: ignore[arg-type]
+
+
+def test_workspace_child_list_response_rejects_missing_required_fields():
+    with pytest.raises(WorkspacePayloadError, match="name must be a string"):
+        WorkspaceStyleListResponse.from_list([{"id": 30}])

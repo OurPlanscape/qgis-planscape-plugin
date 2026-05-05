@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from planscape.gui.behaviors.base import DockContext, DockNodeBehavior
+from planscape.gui.behaviors.category import CategoryBehavior
 from planscape.gui.behaviors.category_collection import CategoryCollectionBehavior
+from planscape.gui.behaviors.datalayer import DataLayerBehavior
 from planscape.gui.behaviors.datalayer_collection import DataLayerCollectionBehavior
 from planscape.gui.behaviors.dataset import DatasetBehavior
 from planscape.gui.behaviors.dataset_collection import DatasetCollectionBehavior
@@ -20,6 +22,8 @@ NODE_BEHAVIORS: dict[NodeKind, DockNodeBehavior] = {
     NodeKind.DATASET: DatasetBehavior(),
     NodeKind.DATALAYER_COLLECTION: DataLayerCollectionBehavior(),
     NodeKind.CATEGORY_COLLECTION: CategoryCollectionBehavior(),
+    NodeKind.CATEGORY: CategoryBehavior(),
+    NodeKind.DATALAYER: DataLayerBehavior(),
 }
 
 

@@ -4,7 +4,7 @@ import pytest
 
 from planscape.api import workspace
 from planscape.models.api.workspace import CreateWorkspaceRequest, UpdateWorkspaceRequest
-from planscape.models.domain import WorkspaceVisibility
+from planscape.models.domain import Dataset, Style, User, WorkspaceVisibility
 from planscape.qgis_plugin_tools.tools.exceptions import QgsPluginException
 
 BASE_URL = "https://dev.planscape.org/planscape-backend"
@@ -152,6 +152,105 @@ def test_update_workspace_request_logs_api_call(monkeypatch):
     workspace.update_workspace_request(BASE_URL, AUTHCFG_ID, 10, UpdateWorkspaceRequest(name="Updated"))
 
     assert logs == [f"[API] PUT:{BASE_URL}/v2/admin/workspaces/10/"]
+
+
+def test_list_workspace_datasets_request_calls_fetch_with_workspace_url(monkeypatch):
+    captured = {}
+
+    def fake_fetch(url: str, authcfg_id: str = "") -> str:
+        captured["url"] = url
+        captured["authcfg_id"] = authcfg_id
+        return json.dumps([{"id": 20, "name": "Base Data", "visibility": "PRIVATE"}])
+
+    monkeypatch.setattr(workspace, "fetch", fake_fetch)
+
+    datasets = workspace.list_workspace_datasets_request(BASE_URL, AUTHCFG_ID, 10)
+
+    assert captured == {
+        "url": f"{BASE_URL}/v2/admin/workspaces/10/datasets/",
+        "authcfg_id": AUTHCFG_ID,
+    }
+    assert datasets == [Dataset(id=20, name="Base Data")]
+
+
+def test_list_workspace_styles_request_calls_fetch_with_workspace_url(monkeypatch):
+    captured = {}
+
+    def fake_fetch(url: str, authcfg_id: str = "") -> str:
+        captured["url"] = url
+        captured["authcfg_id"] = authcfg_id
+        return json.dumps([{"id": 30, "name": "Default", "type": "RASTER"}])
+
+    monkeypatch.setattr(workspace, "fetch", fake_fetch)
+
+    styles = workspace.list_workspace_styles_request(BASE_URL, AUTHCFG_ID, 10)
+
+    assert captured == {
+        "url": f"{BASE_URL}/v2/admin/workspaces/10/styles/",
+        "authcfg_id": AUTHCFG_ID,
+    }
+    assert styles == [Style(id=30, name="Default")]
+
+
+def test_list_workspace_users_request_calls_fetch_with_workspace_url(monkeypatch):
+    captured = {}
+
+    def fake_fetch(url: str, authcfg_id: str = "") -> str:
+        captured["url"] = url
+        captured["authcfg_id"] = authcfg_id
+        return json.dumps(
+            [
+                {
+                    "user_id": 40,
+                    "email": "planner@example.test",
+                    "first_name": "Regional",
+                    "last_name": "Planner",
+                    "role": "VIEWER",
+                }
+            ]
+        )
+
+    monkeypatch.setattr(workspace, "fetch", fake_fetch)
+
+    users = workspace.list_workspace_users_request(BASE_URL, AUTHCFG_ID, 10)
+
+    assert captured == {
+        "url": f"{BASE_URL}/v2/admin/workspaces/10/users/",
+        "authcfg_id": AUTHCFG_ID,
+    }
+    assert users == [User(id=40, name="Regional Planner", email="planner@example.test")]
+
+
+def test_list_workspace_child_requests_log_api_calls(monkeypatch):
+    logs = []
+
+    def fake_fetch(url: str, authcfg_id: str = "") -> str:
+        del url, authcfg_id
+        return json.dumps([])
+
+    monkeypatch.setattr(workspace.logger, "info", lambda message, url: logs.append(message % url))
+    monkeypatch.setattr(workspace, "fetch", fake_fetch)
+
+    workspace.list_workspace_datasets_request(BASE_URL, AUTHCFG_ID, 10)
+    workspace.list_workspace_styles_request(BASE_URL, AUTHCFG_ID, 10)
+    workspace.list_workspace_users_request(BASE_URL, AUTHCFG_ID, 10)
+
+    assert logs == [
+        f"[API] GET:{BASE_URL}/v2/admin/workspaces/10/datasets/",
+        f"[API] GET:{BASE_URL}/v2/admin/workspaces/10/styles/",
+        f"[API] GET:{BASE_URL}/v2/admin/workspaces/10/users/",
+    ]
+
+
+def test_list_workspace_child_request_rejects_paginated_response(monkeypatch):
+    def fake_fetch(url: str, authcfg_id: str = "") -> str:
+        del url, authcfg_id
+        return json.dumps({"count": 0, "results": []})
+
+    monkeypatch.setattr(workspace, "fetch", fake_fetch)
+
+    with pytest.raises(workspace.WorkspaceApiError, match="invalid workspace list response"):
+        workspace.list_workspace_datasets_request(BASE_URL, AUTHCFG_ID, 10)
 
 
 def test_workspace_api_wraps_network_errors(monkeypatch):
