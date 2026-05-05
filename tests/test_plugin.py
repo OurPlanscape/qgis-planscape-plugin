@@ -18,6 +18,7 @@ from planscape.models.domain import (
     Style,
     StyleCollection,
     User,
+    UserCollection,
     Workspace,
     WorkspaceVisibility,
 )
@@ -407,6 +408,7 @@ def test_collection_model_items_show_distinguishing_icons(qgis_app):
         model_item(DatasetCollection()),
         model_item(DataLayerCollection()),
         model_item(StyleCollection()),
+        model_item(UserCollection()),
     ]
 
     assert all(not item.icon(0).isNull() for item in items)

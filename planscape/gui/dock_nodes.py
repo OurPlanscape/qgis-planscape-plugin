@@ -84,6 +84,7 @@ def _node_icon(kind: NodeKind) -> QIcon:
         NodeKind.DATASET_COLLECTION: resources_path("icons", "planscape", "datasets.png"),
         NodeKind.DATALAYER_COLLECTION: resources_path("icons", "planscape", "datalayers.png"),
         NodeKind.STYLE_COLLECTION: resources_path("icons", "planscape", "styles.png"),
+        NodeKind.USER_COLLECTION: resources_path("icons", "planscape", "users.png"),
     }
     if kind in icon_paths:
         return QIcon(icon_paths[kind])
