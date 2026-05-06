@@ -41,6 +41,21 @@ def test_list_workspaces_request_calls_fetch_with_pagination(monkeypatch):
     assert workspaces[0].visibility == WorkspaceVisibility.PUBLIC
 
 
+def test_list_workspaces_request_accepts_raw_list_response(monkeypatch):
+    def fake_fetch(url: str, authcfg_id: str = "", params: dict[str, str] | None = None) -> str:
+        del url, authcfg_id, params
+        return json.dumps([{"id": 10, "name": "Regional Plan", "visibility": "PUBLIC"}])
+
+    monkeypatch.setattr(workspace, "fetch", fake_fetch)
+
+    workspaces = workspace.list_workspaces_request(BASE_URL, AUTHCFG_ID)
+
+    assert len(workspaces) == 1
+    assert workspaces[0].id == 10
+    assert workspaces[0].name == "Regional Plan"
+    assert workspaces[0].visibility == WorkspaceVisibility.PUBLIC
+
+
 def test_list_workspaces_request_logs_api_call(monkeypatch):
     logs = []
 

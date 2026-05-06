@@ -38,6 +38,7 @@ def test_auth_dialog_defaults(qgis_app):
 
 def test_sign_in_stores_environment_and_authcfg_ids(monkeypatch):
     _clear_auth_settings()
+    auth.set_setting(auth.AUTO_LOGIN_DISABLED_KEY, True)
 
     captured = {}
 
@@ -70,6 +71,7 @@ def test_sign_in_stores_environment_and_authcfg_ids(monkeypatch):
     assert auth.get_saved_email() == "person@example.com"
     assert str(auth.get_setting(auth.CREDENTIALS_AUTHCFG_KEY, "", str)) == "basic-authcfg"
     assert auth.get_token_authcfg_id() == "token-authcfg"
+    assert auth.is_auto_login_disabled() is False
     assert captured == {
         "email": "person@example.com",
         "password": "secret",
@@ -108,6 +110,51 @@ def test_sign_in_does_not_save_auth_configs_when_api_fails(monkeypatch):
     assert calls == []
 
 
+def test_token_auth_config_uses_qgis_api_header_shape(monkeypatch):
+    captured = {}
+
+    def fake_save_auth_config(config, authcfg_id: str) -> str:
+        captured["authcfg_id"] = authcfg_id
+        captured["method"] = config.method()
+        captured["uri"] = config.uri()
+        captured["config"] = config.configMap()
+        return "token-authcfg"
+
+    def fake_load_auth_config(authcfg_id: str, *, full: bool = False) -> None:
+        del authcfg_id, full
+
+    monkeypatch.setattr(auth, "_load_auth_config", fake_load_auth_config)
+    monkeypatch.setattr(auth, "_save_auth_config", fake_save_auth_config)
+
+    assert auth._upsert_token_auth_config("access-token", "catalog") == "token-authcfg"
+    assert captured == {
+        "authcfg_id": "",
+        "method": "APIHeader",
+        "uri": "https://catalog.planscape.org/planscape-backend",
+        "config": {"header": "Authorization", "value": "Bearer access-token"},
+    }
+
+
+def test_is_authenticated_rejects_legacy_authorization_config(monkeypatch):
+    _clear_auth_settings()
+
+    class LegacyConfig:
+        def method(self):
+            return "APIHeader"
+
+        def config(self, key: str):
+            return {"Authorization": "Bearer access-token"}.get(key, "")
+
+    def fake_load_auth_config(authcfg_id: str, *, full: bool = False) -> LegacyConfig:
+        del authcfg_id, full
+        return LegacyConfig()
+
+    auth.set_setting(auth.TOKEN_AUTHCFG_KEY, "token-authcfg")
+    monkeypatch.setattr(auth, "_load_auth_config", fake_load_auth_config)
+
+    assert auth.is_authenticated() is False
+
+
 def test_sign_out_clears_token_authcfg_and_removes_saved_token(monkeypatch):
     _clear_auth_settings()
     removed = []
@@ -119,6 +166,73 @@ def test_sign_out_clears_token_authcfg_and_removes_saved_token(monkeypatch):
 
     assert removed == ["token-authcfg"]
     assert auth.get_token_authcfg_id() == ""
+    assert auth.is_auto_login_disabled() is True
+
+
+def test_restore_authenticated_session_uses_saved_credentials(monkeypatch):
+    _clear_auth_settings()
+    auth.set_environment("staging")
+    state = {"authenticated": False}
+    captured = {}
+
+    def fake_sign_in(email: str, password: str, environment: str) -> None:
+        captured["email"] = email
+        captured["password"] = password
+        captured["environment"] = environment
+        state["authenticated"] = True
+
+    def fake_load_saved_credentials(environment: str) -> tuple[str, str]:
+        del environment
+        return "person@example.com", "secret"
+
+    monkeypatch.setattr(auth, "is_authenticated", lambda: state["authenticated"])
+    monkeypatch.setattr(auth, "_load_saved_credentials", fake_load_saved_credentials)
+    monkeypatch.setattr(auth, "sign_in", fake_sign_in)
+
+    assert auth.restore_authenticated_session() is True
+    assert captured == {"email": "person@example.com", "password": "secret", "environment": "staging"}
+
+
+def test_restore_authenticated_session_returns_false_without_saved_credentials(monkeypatch):
+    _clear_auth_settings()
+    removed = []
+
+    def fake_load_saved_credentials(environment: str) -> None:
+        del environment
+
+    monkeypatch.setattr(auth, "_load_saved_credentials", fake_load_saved_credentials)
+    monkeypatch.setattr(auth, "_remove_auth_config", removed.append)
+
+    assert auth.restore_authenticated_session() is False
+    assert auth.get_token_authcfg_id() == ""
+    assert removed == []
+
+
+def test_restore_authenticated_session_clears_token_when_saved_login_fails(monkeypatch):
+    _clear_auth_settings()
+    removed = []
+    auth.set_setting(auth.TOKEN_AUTHCFG_KEY, "token-authcfg")
+
+    def fail_sign_in(email: str, password: str, environment: str) -> None:
+        del email, password, environment
+        message = "Bad credentials"
+        raise auth.PlanscapeAuthError(message)
+
+    def fake_load_auth_config(*args, **kwargs) -> None:
+        del args, kwargs
+
+    def fake_load_saved_credentials(environment: str) -> tuple[str, str]:
+        del environment
+        return "person@example.com", "secret"
+
+    monkeypatch.setattr(auth, "_load_auth_config", fake_load_auth_config)
+    monkeypatch.setattr(auth, "_load_saved_credentials", fake_load_saved_credentials)
+    monkeypatch.setattr(auth, "_remove_auth_config", removed.append)
+    monkeypatch.setattr(auth, "sign_in", fail_sign_in)
+
+    assert auth.restore_authenticated_session() is False
+    assert auth.get_token_authcfg_id() == ""
+    assert removed == ["token-authcfg"]
 
 
 def test_dialog_sign_in_updates_status_and_clears_password(qgis_app, monkeypatch):

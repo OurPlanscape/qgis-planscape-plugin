@@ -1,14 +1,14 @@
 [general]
 name=Planscape
-description=
-about=
+description=Browse and manage Planscape resources from QGIS.
+about=Planscape integrates QGIS with the Planscape API so users can browse workspaces, datasets, data layers, and styles.
 version=0.1.0
 qgisMinimumVersion=3.40
 qgisMaximumVersion=4.99
-author=
+author=Planscape
 email=
 changelog=
-tags=
+tags=planscape,workspaces,datasets,datalayers,styles
 repository=https://github.com/OurPlanscape/qgis-planscape-plugin
 tracker=https://github.com/OurPlanscape/qgis-planscape-plugin/issues
 homepage=https://github.com/OurPlanscape/qgis-planscape-plugin
