@@ -7,6 +7,25 @@
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 
+## Installation
+
+1. Open QGIS.
+2. Go to **Plugins > Manage and Install Plugins...**.
+3. Open the **Settings** tab.
+4. Click **Add...** under **Plugin Repositories**.
+5. Enter `Planscape Dev` as the repository name.
+6. Enter this repository URL:
+
+```text
+https://github.com/OurPlanscape/qgis-planscape-plugin/releases/tag/dev
+```
+
+7. Click **OK**.
+8. Open the **All** tab.
+9. Search for `Planscape`.
+10. Select the Planscape plugin and click **Install Plugin**.
+11. After installation, open Planscape from the QGIS **Plugins** menu.
+
 ## Development
 
 Install your virtualenv with:
