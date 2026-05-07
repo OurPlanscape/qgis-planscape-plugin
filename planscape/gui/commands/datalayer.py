@@ -15,7 +15,8 @@ from qgis.core import (
 from qgis.PyQt.QtGui import QColor
 
 from planscape import auth
-from planscape.api.datalayer import DataLayerApiError, retrieve_datalayer_urls_request
+from planscape.api.datalayer import retrieve_datalayer_urls_request
+from planscape.api.exceptions import DataLayerApiError
 
 if TYPE_CHECKING:
     from planscape.models.domain import DataLayer

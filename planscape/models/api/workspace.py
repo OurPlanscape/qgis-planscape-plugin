@@ -112,7 +112,7 @@ class WorkspaceDatasetResponse:
         )
 
     def to_domain(self) -> Dataset:
-        return Dataset(id=self.id, name=self.name)
+        return Dataset(id=self.id, name=self.name, visibility=self.visibility)
 
 
 @dataclass(frozen=True)

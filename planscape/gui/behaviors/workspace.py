@@ -33,3 +33,8 @@ class WorkspaceBehavior(DockNodeBehavior):
         edit_action = QAction("Edit", context.tree)
         edit_action.triggered.connect(lambda: update_workspace(model, context, item))
         return [edit_action, refresh_action(context, item)]
+
+    def double_clicked(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> None:
+        if not isinstance(model, Workspace):
+            return
+        update_workspace(model, context, item)

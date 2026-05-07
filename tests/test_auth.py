@@ -3,7 +3,8 @@ from qgis.core import QgsProcessingException, QgsSettings
 from qgis.PyQt.QtWidgets import QLineEdit
 
 from planscape import auth
-from planscape.api.auth import AuthApiError, LoginTokens
+from planscape.api.auth import LoginTokens
+from planscape.api.exceptions import AuthApiError
 from planscape.gui.auth_dialog import AuthDialog
 from planscape.processing.import_raster import ImportRasterAlgorithm
 from planscape.processing.import_vector import ImportVectorAlgorithm

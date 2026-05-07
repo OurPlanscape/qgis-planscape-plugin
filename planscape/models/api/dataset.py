@@ -5,10 +5,73 @@ from typing import Any
 
 from planscape.models.domain.category import Category
 from planscape.models.domain.datalayer import DataLayer
+from planscape.models.domain.dataset import Dataset
+from planscape.models.domain.workspace import WorkspaceVisibility
 
 
 class DatasetPayloadError(Exception):
     pass
+
+
+@dataclass(frozen=True)
+class CreateDatasetRequest:
+    workspace_id: int | str
+    name: str
+    visibility: WorkspaceVisibility = WorkspaceVisibility.PRIVATE
+    organization: int | None = None
+    version: str | None = None
+    modules: str = "forsys,map,prioritize_sub_units"
+
+    def to_dict(self) -> dict[str, object]:
+        payload: dict[str, object] = {
+            "workspace_id": self.workspace_id,
+            "name": self.name,
+            "visibility": self.visibility.value,
+            "modules": _modules_to_list(self.modules),
+        }
+        if self.organization is not None:
+            payload["organization"] = self.organization
+        if self.version is not None:
+            payload["version"] = self.version
+        return payload
+
+
+@dataclass(frozen=True)
+class UpdateDatasetRequest:
+    name: str | None = None
+    visibility: WorkspaceVisibility | None = None
+
+    def to_dict(self) -> dict[str, str]:
+        payload = {}
+        if self.name is not None:
+            payload["name"] = self.name
+        if self.visibility is not None:
+            payload["visibility"] = self.visibility.value
+        return payload
+
+
+@dataclass(frozen=True)
+class DatasetResponse:
+    name: str
+    visibility: WorkspaceVisibility = WorkspaceVisibility.PRIVATE
+    id: int | None = None
+    modules: str = ""
+
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> DatasetResponse:
+        if not isinstance(payload, dict):
+            message = "Dataset response must be an object."
+            raise DatasetPayloadError(message)
+
+        return cls(
+            id=_optional_int(payload.get("id"), "id"),
+            name=_required_string(payload.get("name"), "name"),
+            visibility=_visibility(payload.get("visibility", WorkspaceVisibility.PRIVATE.value)),
+            modules=_modules_to_string(payload.get("modules")),
+        )
+
+    def to_domain(self) -> Dataset:
+        return Dataset(id=self.id, name=self.name, visibility=self.visibility, modules=self.modules)
 
 
 @dataclass(frozen=True)
@@ -135,6 +198,25 @@ def _required_int(value: Any, field_name: str) -> int:
     raise DatasetPayloadError(message)
 
 
+def _optional_int(value: Any, field_name: str) -> int | None:
+    if value is None:
+        return None
+    return _required_int(value, field_name)
+
+
+def _visibility(value: Any) -> WorkspaceVisibility:
+    if isinstance(value, WorkspaceVisibility):
+        return value
+    if isinstance(value, str):
+        try:
+            return WorkspaceVisibility(value)
+        except ValueError as exc:
+            message = f"Unsupported dataset visibility: {value}"
+            raise DatasetPayloadError(message) from exc
+    message = "visibility must be a string."
+    raise DatasetPayloadError(message)
+
+
 def _required_string_list(value: Any, field_name: str) -> list[str]:
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
         message = f"{field_name} must be a list of strings."
@@ -149,3 +231,16 @@ def _optional_list(value: Any, field_name: str) -> list[Any]:
         return list(value)
     message = f"{field_name} must be a list or null."
     raise DatasetPayloadError(message)
+
+
+def _modules_to_list(value: str) -> list[str]:
+    return [module.strip() for module in value.split(",") if module.strip()]
+
+
+def _modules_to_string(value: Any) -> str:
+    if value is None:
+        return ""
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        message = "modules must be a list of strings or null."
+        raise DatasetPayloadError(message)
+    return ",".join(value)

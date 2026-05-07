@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 from qgis.PyQt.QtCore import Qt
 
 from planscape import auth
+from planscape.api.exceptions import WorkspaceApiError
 from planscape.api.workspace import (
-    WorkspaceApiError,
     create_workspace_request,
     update_workspace_request,
 )

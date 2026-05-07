@@ -4,7 +4,9 @@ import json
 import logging
 from typing import TYPE_CHECKING
 
-from planscape.models.api.datalayer import DataLayerPayloadError, DataLayerUrlsResponse
+from planscape.api.common import log_api_failure, log_api_success
+from planscape.api.exceptions import DataLayerApiError
+from planscape.models.api.datalayer import DataLayerUrlsResponse
 from planscape.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from planscape.qgis_plugin_tools.tools.network import fetch
 
@@ -16,23 +18,21 @@ DATALAYERS_PATH = "/v2/datalayers/"
 logger = logging.getLogger(__name__)
 
 
-class DataLayerApiError(Exception):
-    pass
-
-
 def retrieve_datalayer_urls_request(base_url: str, authcfg_id: str, datalayer_id: int) -> DataLayerUrlsResponse:
     url = _datalayer_urls_url(base_url, datalayer_id)
-    logger.info("[API] GET:%s", url)
-    response = _request_json(
-        lambda: fetch(url, authcfg_id=authcfg_id),
-        "Planscape datalayer URLs request failed",
-    )
-
     try:
-        return DataLayerUrlsResponse.from_dict(response)
-    except DataLayerPayloadError as exc:
-        message = "Planscape returned an invalid datalayer URLs response."
-        raise DataLayerApiError(message) from exc
+        response = _request_json(
+            lambda: fetch(url, authcfg_id=authcfg_id),
+            "Planscape datalayer URLs request failed",
+        )
+        result = DataLayerUrlsResponse.from_dict(response)
+
+    except Exception as exc:
+        log_api_failure(logger, "GET", url, exc)
+        raise
+    else:
+        log_api_success(logger, "GET", url)
+        return result
 
 
 def _request_json(request: Callable[[], str], failure_message: str) -> dict[str, object]:

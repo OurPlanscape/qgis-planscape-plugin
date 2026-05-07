@@ -3,6 +3,7 @@ import json
 import pytest
 
 from planscape.api import workspace
+from planscape.api.exceptions import WorkspaceApiError
 from planscape.models.api.workspace import CreateWorkspaceRequest, UpdateWorkspaceRequest
 from planscape.models.domain import Dataset, Style, User, WorkspaceVisibility
 from planscape.qgis_plugin_tools.tools.exceptions import QgsPluginException
@@ -68,7 +69,7 @@ def test_list_workspaces_request_logs_api_call(monkeypatch):
 
     workspace.list_workspaces_request(BASE_URL, AUTHCFG_ID)
 
-    assert logs == [f"[API] GET:{BASE_URL}/v2/admin/workspaces/"]
+    assert logs == [f"[API] SUCCESS:GET:{BASE_URL}/v2/admin/workspaces/"]
 
 
 def test_list_workspaces_request_omits_empty_pagination_params(monkeypatch):
@@ -123,7 +124,7 @@ def test_create_workspace_request_logs_api_call(monkeypatch):
 
     workspace.create_workspace_request(BASE_URL, AUTHCFG_ID, CreateWorkspaceRequest(name="Regional Plan"))
 
-    assert logs == [f"[API] POST:{BASE_URL}/v2/admin/workspaces/"]
+    assert logs == [f"[API] SUCCESS:POST:{BASE_URL}/v2/admin/workspaces/"]
 
 
 def test_update_workspace_request_calls_put_with_request_payload(monkeypatch):
@@ -166,7 +167,7 @@ def test_update_workspace_request_logs_api_call(monkeypatch):
 
     workspace.update_workspace_request(BASE_URL, AUTHCFG_ID, 10, UpdateWorkspaceRequest(name="Updated"))
 
-    assert logs == [f"[API] PUT:{BASE_URL}/v2/admin/workspaces/10/"]
+    assert logs == [f"[API] SUCCESS:PUT:{BASE_URL}/v2/admin/workspaces/10/"]
 
 
 def test_list_workspace_datasets_request_calls_fetch_with_workspace_url(monkeypatch):
@@ -251,10 +252,27 @@ def test_list_workspace_child_requests_log_api_calls(monkeypatch):
     workspace.list_workspace_users_request(BASE_URL, AUTHCFG_ID, 10)
 
     assert logs == [
-        f"[API] GET:{BASE_URL}/v2/admin/workspaces/10/datasets/",
-        f"[API] GET:{BASE_URL}/v2/admin/workspaces/10/styles/",
-        f"[API] GET:{BASE_URL}/v2/admin/workspaces/10/users/",
+        f"[API] SUCCESS:GET:{BASE_URL}/v2/admin/workspaces/10/datasets/",
+        f"[API] SUCCESS:GET:{BASE_URL}/v2/admin/workspaces/10/styles/",
+        f"[API] SUCCESS:GET:{BASE_URL}/v2/admin/workspaces/10/users/",
     ]
+
+
+def test_list_workspaces_request_logs_api_failure(monkeypatch):
+    logs = []
+
+    def fake_fetch(url: str, authcfg_id: str = "", params: dict[str, str] | None = None) -> str:
+        del url, authcfg_id, params
+        message = "failed"
+        raise QgsPluginException(message)
+
+    monkeypatch.setattr(workspace.logger, "info", lambda message, url: logs.append(message % url))
+    monkeypatch.setattr(workspace, "fetch", fake_fetch)
+
+    with pytest.raises(WorkspaceApiError, match="failed"):
+        workspace.list_workspaces_request(BASE_URL, AUTHCFG_ID)
+
+    assert logs == [f"[API] FAILED:GET:{BASE_URL}/v2/admin/workspaces/:Planscape workspace list request failed: failed"]
 
 
 def test_list_workspace_child_request_rejects_paginated_response(monkeypatch):
@@ -264,7 +282,7 @@ def test_list_workspace_child_request_rejects_paginated_response(monkeypatch):
 
     monkeypatch.setattr(workspace, "fetch", fake_fetch)
 
-    with pytest.raises(workspace.WorkspaceApiError, match="invalid workspace list response"):
+    with pytest.raises(WorkspaceApiError, match="invalid workspace list response"):
         workspace.list_workspace_datasets_request(BASE_URL, AUTHCFG_ID, 10)
 
 
@@ -276,7 +294,7 @@ def test_workspace_api_wraps_network_errors(monkeypatch):
 
     monkeypatch.setattr(workspace, "fetch", fake_fetch)
 
-    with pytest.raises(workspace.WorkspaceApiError, match="workspace list request failed"):
+    with pytest.raises(WorkspaceApiError, match="workspace list request failed"):
         workspace.list_workspaces_request(BASE_URL, AUTHCFG_ID)
 
 
@@ -287,7 +305,7 @@ def test_workspace_api_wraps_invalid_json(monkeypatch):
 
     monkeypatch.setattr(workspace, "post", fake_post)
 
-    with pytest.raises(workspace.WorkspaceApiError, match="invalid JSON"):
+    with pytest.raises(WorkspaceApiError, match="invalid JSON"):
         workspace.create_workspace_request(BASE_URL, AUTHCFG_ID, CreateWorkspaceRequest(name="Regional Plan"))
 
 
@@ -298,5 +316,5 @@ def test_workspace_api_wraps_invalid_schema(monkeypatch):
 
     monkeypatch.setattr(workspace, "put", fake_put)
 
-    with pytest.raises(workspace.WorkspaceApiError, match="invalid workspace response"):
+    with pytest.raises(WorkspaceApiError, match="invalid workspace response"):
         workspace.update_workspace_request(BASE_URL, AUTHCFG_ID, 10, UpdateWorkspaceRequest(name="Updated"))

@@ -5,7 +5,8 @@ from typing import Any, TypeVar
 
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsProcessingException, QgsSettings
 
-from planscape.api.auth import AuthApiError, sign_in_request
+from planscape.api.auth import sign_in_request
+from planscape.api.exceptions import AuthApiError
 from planscape.qgis_plugin_tools.tools.resources import plugin_name
 
 T = TypeVar("T")

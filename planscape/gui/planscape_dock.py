@@ -5,7 +5,8 @@ from qgis.PyQt.QtWidgets import QApplication, QDockWidget, QMenu, QTreeWidget, Q
 from qgis.utils import iface
 
 from planscape import auth
-from planscape.api.workspace import WorkspaceApiError, list_workspaces_request
+from planscape.api.exceptions import WorkspaceApiError
+from planscape.api.workspace import list_workspaces_request
 from planscape.gui.auth_dialog import AuthDialog
 from planscape.gui.behaviors import DockContext, behavior_for
 from planscape.gui.dock_nodes import (
