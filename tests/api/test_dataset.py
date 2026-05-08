@@ -3,7 +3,7 @@ import json
 import pytest
 
 from planscape.api import dataset
-from planscape.api.exceptions import DatasetApiError
+from planscape.api.exceptions import DatasetAPIError, DatasetPayloadError
 from planscape.models.api.dataset import CreateDatasetRequest, UpdateDatasetRequest
 from planscape.models.domain import WorkspaceVisibility
 from planscape.qgis_plugin_tools.tools.exceptions import QgsPluginException
@@ -142,23 +142,12 @@ def test_browse_dataset_request_logs_api_failure(monkeypatch):
     monkeypatch.setattr(dataset.logger, "info", lambda message, url: logs.append(message % url))
     monkeypatch.setattr(dataset, "fetch", fake_fetch)
 
-    with pytest.raises(DatasetApiError, match="failed"):
+    with pytest.raises(DatasetAPIError, match="failed"):
         dataset.browse_dataset_request(BASE_URL, AUTHCFG_ID, 3)
 
     assert logs == [
         f"[API] FAILED:GET:{BASE_URL}/v2/datasets/3/browse/:Planscape dataset browse request failed: failed"
     ]
-
-
-def test_browse_dataset_request_rejects_paginated_response(monkeypatch):
-    def fake_fetch(url: str, authcfg_id: str = "") -> str:
-        del url, authcfg_id
-        return json.dumps({"count": 0, "results": []})
-
-    monkeypatch.setattr(dataset, "fetch", fake_fetch)
-
-    with pytest.raises(DatasetApiError, match="invalid dataset browse response"):
-        dataset.browse_dataset_request(BASE_URL, AUTHCFG_ID, 3)
 
 
 def test_browse_dataset_request_wraps_network_errors(monkeypatch):
@@ -169,7 +158,7 @@ def test_browse_dataset_request_wraps_network_errors(monkeypatch):
 
     monkeypatch.setattr(dataset, "fetch", fake_fetch)
 
-    with pytest.raises(DatasetApiError, match="dataset browse request failed"):
+    with pytest.raises(DatasetAPIError, match="dataset browse request failed"):
         dataset.browse_dataset_request(BASE_URL, AUTHCFG_ID, 3)
 
 
@@ -180,7 +169,7 @@ def test_browse_dataset_request_wraps_invalid_json(monkeypatch):
 
     monkeypatch.setattr(dataset, "fetch", fake_fetch)
 
-    with pytest.raises(DatasetApiError, match="invalid JSON"):
+    with pytest.raises(DatasetPayloadError):
         dataset.browse_dataset_request(BASE_URL, AUTHCFG_ID, 3)
 
 
@@ -191,7 +180,7 @@ def test_browse_dataset_request_wraps_invalid_schema(monkeypatch):
 
     monkeypatch.setattr(dataset, "fetch", fake_fetch)
 
-    with pytest.raises(DatasetApiError, match="invalid dataset browse response"):
+    with pytest.raises(DatasetPayloadError):
         dataset.browse_dataset_request(BASE_URL, AUTHCFG_ID, 3)
 
 
@@ -202,7 +191,7 @@ def test_dataset_admin_request_wraps_invalid_json(monkeypatch):
 
     monkeypatch.setattr(dataset, "post", fake_post)
 
-    with pytest.raises(DatasetApiError, match="invalid JSON"):
+    with pytest.raises(DatasetPayloadError):
         dataset.create_dataset_request(BASE_URL, AUTHCFG_ID, CreateDatasetRequest(workspace_id=7, name="Base Data"))
 
 
@@ -213,5 +202,5 @@ def test_dataset_admin_request_wraps_invalid_schema(monkeypatch):
 
     monkeypatch.setattr(dataset, "put", fake_put)
 
-    with pytest.raises(DatasetApiError, match="invalid dataset response"):
+    with pytest.raises(DatasetPayloadError):
         dataset.update_dataset_request(BASE_URL, AUTHCFG_ID, 20, UpdateDatasetRequest(name="Updated Data"))

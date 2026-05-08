@@ -5,13 +5,12 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from planscape.api.common import log_api_failure, log_api_success
-from planscape.api.exceptions import WorkspaceApiError
+from planscape.api.exceptions import WorkspaceAPIError, WorkspacePayloadError
 from planscape.models.api.workspace import (
     CreateWorkspaceRequest,
     PaginatedWorkspaceResponse,
     UpdateWorkspaceRequest,
     WorkspaceDatasetListResponse,
-    WorkspacePayloadError,
     WorkspaceResponse,
     WorkspaceStyleListResponse,
     WorkspaceUserAccessListResponse,
@@ -148,12 +147,12 @@ def list_workspace_users_request(base_url: str, authcfg_id: str, workspace_id: i
 def _workspace_from_response(response: object) -> Workspace:
     if not isinstance(response, dict):
         message = "Planscape returned an invalid workspace response."
-        raise WorkspaceApiError(message)
+        raise WorkspaceAPIError(message)
     try:
         return WorkspaceResponse.from_dict(response).to_domain()
     except WorkspacePayloadError as exc:
         message = "Planscape returned an invalid workspace response."
-        raise WorkspaceApiError(message) from exc
+        raise WorkspaceAPIError(message) from exc
 
 
 def _request_json(request: Callable[[], str], failure_message: str) -> dict[str, Any] | list[Any]:
@@ -161,13 +160,13 @@ def _request_json(request: Callable[[], str], failure_message: str) -> dict[str,
         response = request()
     except QgsPluginException as exc:
         message = f"{failure_message}: {exc}"
-        raise WorkspaceApiError(message) from exc
+        raise WorkspaceAPIError(message) from exc
 
     try:
         body = json.loads(response)
     except json.JSONDecodeError as exc:
         message = "Planscape returned an invalid JSON workspace response."
-        raise WorkspaceApiError(message) from exc
+        raise WorkspaceAPIError(message) from exc
 
     return body
 
@@ -177,17 +176,17 @@ def _request_json_list(request: Callable[[], str], failure_message: str) -> list
         response = request()
     except QgsPluginException as exc:
         message = f"{failure_message}: {exc}"
-        raise WorkspaceApiError(message) from exc
+        raise WorkspaceAPIError(message) from exc
 
     try:
         body = json.loads(response)
     except json.JSONDecodeError as exc:
         message = "Planscape returned an invalid JSON workspace response."
-        raise WorkspaceApiError(message) from exc
+        raise WorkspaceAPIError(message) from exc
 
     if not isinstance(body, list):
         message = "Planscape returned an invalid workspace list response."
-        raise WorkspaceApiError(message)
+        raise WorkspaceAPIError(message)
     return body
 
 

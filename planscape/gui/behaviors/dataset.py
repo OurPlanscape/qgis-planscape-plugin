@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from planscape import auth
 from planscape.api.dataset import browse_dataset_request
-from planscape.api.exceptions import DatasetApiError
+from planscape.api.exceptions import DatasetAPIError
 from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, refresh_action
 from planscape.gui.commands.dataset import update_dataset
 from planscape.models.domain import DataLayerCollection, Dataset, Model
@@ -29,7 +29,7 @@ class DatasetBehavior(DockNodeBehavior):
                 auth.ensure_authenticated(),
                 model.id,
             )
-        except DatasetApiError:
+        except DatasetAPIError:
             return [DataLayerCollection(dataset_id=model.id)]
 
         return [

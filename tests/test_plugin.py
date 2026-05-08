@@ -1,7 +1,7 @@
 import pytest
 from qgis.PyQt.QtWidgets import QWidget
 
-from planscape.api.exceptions import DatasetApiError, WorkspaceApiError
+from planscape.api.exceptions import DatasetAPIError, WorkspaceAPIError
 from planscape.gui.behaviors import behavior_for
 from planscape.gui.dock_nodes import LOADING_CHILD_LABEL, NODE_KIND_ROLE, NODE_OBJECT_ROLE, model_item
 from planscape.gui.planscape_dock import PlanscapeDockWidget
@@ -570,7 +570,7 @@ def test_planscape_dock_dataset_browse_error_returns_empty_data_layers(qgis_app,
     def fake_browse_dataset_request(base_url, authcfg_id, dataset_id):
         del base_url, authcfg_id, dataset_id
         message = "failed"
-        raise DatasetApiError(message)
+        raise DatasetAPIError(message)
 
     monkeypatch.setattr("planscape.gui.behaviors.dataset.browse_dataset_request", fake_browse_dataset_request)
 
@@ -754,7 +754,7 @@ def test_planscape_dock_collection_api_error_returns_empty_children(qgis_app, mo
     def fake_list_workspace_datasets_request(base_url, authcfg_id, workspace_id):
         del base_url, authcfg_id, workspace_id
         message = "failed"
-        raise WorkspaceApiError(message)
+        raise WorkspaceAPIError(message)
 
     monkeypatch.setattr(
         "planscape.gui.behaviors.dataset_collection.list_workspace_datasets_request",

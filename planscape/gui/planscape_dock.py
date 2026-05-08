@@ -5,7 +5,7 @@ from qgis.PyQt.QtWidgets import QApplication, QDockWidget, QMenu, QTreeWidget, Q
 from qgis.utils import iface
 
 from planscape import auth
-from planscape.api.exceptions import WorkspaceApiError
+from planscape.api.exceptions import WorkspaceAPIError
 from planscape.api.workspace import list_workspaces_request
 from planscape.gui.auth_dialog import AuthDialog
 from planscape.gui.behaviors import DockContext, behavior_for
@@ -126,7 +126,7 @@ class PlanscapeDockWidget(QDockWidget):
     def _load_workspaces(self, environment: str) -> list[Workspace]:
         try:
             return list_workspaces_request(auth.get_base_url(environment), auth.ensure_authenticated())
-        except WorkspaceApiError:
+        except WorkspaceAPIError:
             return []
 
     def _replace_item_children(self, item: QTreeWidgetItem, *, expanded_keys: set[str]) -> None:

@@ -3,7 +3,7 @@ import json
 import pytest
 
 from planscape.api import auth
-from planscape.api.exceptions import AuthApiError
+from planscape.api.exceptions import AuthAPIError
 from planscape.qgis_plugin_tools.tools.exceptions import QgsPluginException
 
 
@@ -35,7 +35,7 @@ def test_sign_in_request_logs_api_failure(monkeypatch):
     monkeypatch.setattr(auth.logger, "info", lambda message, url: logs.append(message % url))
     monkeypatch.setattr(auth, "post", fake_post)
 
-    with pytest.raises(AuthApiError, match="failed"):
+    with pytest.raises(AuthAPIError, match="failed"):
         auth.sign_in_request("person@example.com", "secret", base_url)
 
     assert logs == [f"[API] FAILED:POST:{base_url}/dj-rest-auth/login/:failed"]

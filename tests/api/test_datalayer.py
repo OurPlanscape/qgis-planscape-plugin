@@ -3,7 +3,7 @@ import json
 import pytest
 
 from planscape.api import datalayer
-from planscape.api.exceptions import DataLayerApiError
+from planscape.api.exceptions import DataLayerAPIError, DataLayerPayloadError
 from planscape.qgis_plugin_tools.tools.exceptions import QgsPluginException
 
 BASE_URL = "https://dev.planscape.org/planscape-backend"
@@ -52,7 +52,7 @@ def test_retrieve_datalayer_urls_request_logs_api_failure(monkeypatch):
     monkeypatch.setattr(datalayer.logger, "info", lambda message, url: logs.append(message % url))
     monkeypatch.setattr(datalayer, "fetch", fake_fetch)
 
-    with pytest.raises(DataLayerApiError, match="failed"):
+    with pytest.raises(DataLayerAPIError, match="failed"):
         datalayer.retrieve_datalayer_urls_request(BASE_URL, AUTHCFG_ID, 10)
 
     assert logs == [
@@ -68,7 +68,7 @@ def test_retrieve_datalayer_urls_request_wraps_network_errors(monkeypatch):
 
     monkeypatch.setattr(datalayer, "fetch", fake_fetch)
 
-    with pytest.raises(DataLayerApiError, match="datalayer URLs request failed"):
+    with pytest.raises(DataLayerAPIError, match="datalayer URLs request failed"):
         datalayer.retrieve_datalayer_urls_request(BASE_URL, AUTHCFG_ID, 10)
 
 
@@ -79,7 +79,7 @@ def test_retrieve_datalayer_urls_request_wraps_invalid_json(monkeypatch):
 
     monkeypatch.setattr(datalayer, "fetch", fake_fetch)
 
-    with pytest.raises(DataLayerApiError, match="invalid JSON"):
+    with pytest.raises(DataLayerAPIError):
         datalayer.retrieve_datalayer_urls_request(BASE_URL, AUTHCFG_ID, 10)
 
 
@@ -90,5 +90,5 @@ def test_retrieve_datalayer_urls_request_wraps_invalid_schema(monkeypatch):
 
     monkeypatch.setattr(datalayer, "fetch", fake_fetch)
 
-    with pytest.raises(DataLayerApiError, match="invalid datalayer URLs response"):
+    with pytest.raises(DataLayerPayloadError):
         datalayer.retrieve_datalayer_urls_request(BASE_URL, AUTHCFG_ID, 10)

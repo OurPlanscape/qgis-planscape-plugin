@@ -1,6 +1,7 @@
 import pytest
 
-from planscape.models.api.datalayer import DataLayerPayloadError, DataLayerUrlsResponse
+from planscape.api.exceptions import DataLayerPayloadError
+from planscape.models.api.datalayer import DataLayerUrlsResponse
 
 
 def test_datalayer_urls_response_parses_layer_url():

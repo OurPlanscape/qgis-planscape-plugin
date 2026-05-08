@@ -3,14 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from planscape.api.exceptions import WorkspacePayloadError
 from planscape.models.domain.dataset import Dataset
 from planscape.models.domain.style import Style
 from planscape.models.domain.user import User
 from planscape.models.domain.workspace import Workspace, WorkspaceVisibility
-
-
-class WorkspacePayloadError(Exception):
-    pass
 
 
 @dataclass(frozen=True)

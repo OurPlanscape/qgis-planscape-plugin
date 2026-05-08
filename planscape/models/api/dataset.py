@@ -3,14 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from planscape.api.exceptions import DatasetPayloadError
 from planscape.models.domain.category import Category
 from planscape.models.domain.datalayer import DataLayer
 from planscape.models.domain.dataset import Dataset
 from planscape.models.domain.workspace import WorkspaceVisibility
-
-
-class DatasetPayloadError(Exception):
-    pass
 
 
 @dataclass(frozen=True)
@@ -59,10 +56,6 @@ class DatasetResponse:
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> DatasetResponse:
-        if not isinstance(payload, dict):
-            message = "Dataset response must be an object."
-            raise DatasetPayloadError(message)
-
         return cls(
             id=_optional_int(payload.get("id"), "id"),
             name=_required_string(payload.get("name"), "name"),

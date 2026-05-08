@@ -1,11 +1,11 @@
 import pytest
 
+from planscape.api.exceptions import WorkspacePayloadError
 from planscape.models.api.workspace import (
     CreateWorkspaceRequest,
     PaginatedWorkspaceResponse,
     UpdateWorkspaceRequest,
     WorkspaceDatasetListResponse,
-    WorkspacePayloadError,
     WorkspaceResponse,
     WorkspaceStyleListResponse,
     WorkspaceUserAccessListResponse,

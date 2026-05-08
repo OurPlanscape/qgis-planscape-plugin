@@ -6,7 +6,7 @@ from qgis.PyQt.QtCore import Qt
 
 from planscape import auth
 from planscape.api.dataset import create_dataset_request, update_dataset_request
-from planscape.api.exceptions import DatasetApiError
+from planscape.api.exceptions import DatasetAPIError
 from planscape.gui.dataset_dialog import DatasetDialog
 from planscape.models.api.dataset import CreateDatasetRequest, UpdateDatasetRequest
 from planscape.models.domain.workspace import WorkspaceVisibility
@@ -37,7 +37,7 @@ def create_dataset(context: DockContext, item: QTreeWidgetItem, workspace_id: in
             auth.ensure_authenticated(),
             request,
         )
-    except DatasetApiError:
+    except DatasetAPIError:
         return
 
     context.refresh_node(item)
@@ -67,7 +67,7 @@ def update_dataset(dataset: Dataset, context: DockContext, item: QTreeWidgetItem
             dataset.id,
             request,
         )
-    except DatasetApiError:
+    except DatasetAPIError:
         return
 
     item.setText(0, updated_dataset.node_label())

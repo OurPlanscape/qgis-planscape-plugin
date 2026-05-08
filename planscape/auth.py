@@ -6,7 +6,7 @@ from typing import Any, TypeVar
 from qgis.core import QgsApplication, QgsAuthMethodConfig, QgsProcessingException, QgsSettings
 
 from planscape.api.auth import sign_in_request
-from planscape.api.exceptions import AuthApiError
+from planscape.api.exceptions import AuthAPIError
 from planscape.qgis_plugin_tools.tools.resources import plugin_name
 
 T = TypeVar("T")
@@ -151,7 +151,7 @@ def sign_in(email: str, password: str, environment: str) -> LoginResult:
 
     try:
         tokens = sign_in_request(email.strip(), password, get_base_url(environment))
-    except AuthApiError as exc:
+    except AuthAPIError as exc:
         raise PlanscapeAuthError(str(exc)) from exc
 
     set_environment(environment)

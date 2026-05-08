@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from planscape.api.common import log_api_failure, log_api_success
-from planscape.api.exceptions import AuthApiError
+from planscape.api.exceptions import AuthAPIError
 from planscape.models.api.auth import AuthPayloadError, LoginErrorPayload
 from planscape.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from planscape.qgis_plugin_tools.tools.network import post
@@ -38,7 +38,7 @@ def sign_in_request(email: str, password: str, base_url: str) -> LoginTokens:
     except QgsPluginException as exc:
         error_details = _parse_login_error(str(exc))
         message = error_details.formatted_message() if error_details else str(exc)
-        api_error = AuthApiError(message, error_details)
+        api_error = AuthAPIError(message, error_details)
         log_api_failure(logger, "POST", url, api_error)
         raise api_error from exc
 
@@ -46,7 +46,7 @@ def sign_in_request(email: str, password: str, base_url: str) -> LoginTokens:
         body = json.loads(response)
     except json.JSONDecodeError as exc:
         message = "Planscape returned an invalid login response."
-        api_error = AuthApiError(message)
+        api_error = AuthAPIError(message)
         log_api_failure(logger, "POST", url, api_error)
         raise api_error from exc
 
@@ -54,12 +54,12 @@ def sign_in_request(email: str, password: str, base_url: str) -> LoginTokens:
     refresh_token = body.get("refresh")
     if not isinstance(access_token, str) or not access_token:
         message = "Planscape login did not return an access token."
-        api_error = AuthApiError(message)
+        api_error = AuthAPIError(message)
         log_api_failure(logger, "POST", url, api_error)
         raise api_error
     if not isinstance(refresh_token, str) or not refresh_token:
         message = "Planscape login did not return a refresh token."
-        api_error = AuthApiError(message)
+        api_error = AuthAPIError(message)
         log_api_failure(logger, "POST", url, api_error)
         raise api_error
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from planscape import auth
-from planscape.api.exceptions import WorkspaceApiError
+from planscape.api.exceptions import WorkspaceAPIError
 from planscape.api.workspace import list_workspace_datasets_request
 from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, refresh_action
 from planscape.gui.commands.dataset import create_dataset
@@ -29,7 +29,7 @@ class DatasetCollectionBehavior(DockNodeBehavior):
                 auth.ensure_authenticated(),
                 model.workspace_id,
             )
-        except WorkspaceApiError:
+        except WorkspaceAPIError:
             return []
 
     def actions(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> list[QAction]:

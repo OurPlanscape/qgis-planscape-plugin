@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from planscape.api.common import log_api_failure, log_api_success
-from planscape.api.exceptions import DatasetApiError
-from planscape.models.api.dataset import BrowseDatasetResponse, DatasetPayloadError, DatasetResponse
+from planscape.api.exceptions import DatasetAPIError, DatasetPayloadError
+from planscape.models.api.dataset import BrowseDatasetResponse, DatasetResponse
 from planscape.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from planscape.qgis_plugin_tools.tools.network import fetch, post
 from planscape.tools.network import put
@@ -76,29 +76,22 @@ def browse_dataset_request(base_url: str, authcfg_id: str, dataset_id: int | str
         return result
 
 
-def _dataset_from_response(response: object) -> Dataset:
-    if not isinstance(response, dict):
-        message = "Planscape returned an invalid dataset response."
-        raise DatasetApiError(message)
-    try:
-        return DatasetResponse.from_dict(response).to_domain()
-    except DatasetPayloadError as exc:
-        message = "Planscape returned an invalid dataset response."
-        raise DatasetApiError(message) from exc
+def _dataset_from_response(response: dict[str, Any]) -> Dataset:
+    return DatasetResponse.from_dict(response).to_domain()
 
 
-def _request_json(request: Callable[[], str], failure_message: str) -> object:
+def _request_json(request: Callable[[], str], failure_message: str) -> dict[str, Any]:
     try:
         response = request()
     except QgsPluginException as exc:
         message = f"{failure_message}: {exc}"
-        raise DatasetApiError(message) from exc
+        raise DatasetAPIError(message) from exc
 
     try:
         return json.loads(response)
     except json.JSONDecodeError as exc:
         message = "Planscape returned an invalid JSON dataset response."
-        raise DatasetApiError(message) from exc
+        raise DatasetPayloadError(message) from exc
 
 
 def _request_json_list(request: Callable[[], str], failure_message: str) -> list[object]:
@@ -106,17 +99,14 @@ def _request_json_list(request: Callable[[], str], failure_message: str) -> list
         response = request()
     except QgsPluginException as exc:
         message = f"{failure_message}: {exc}"
-        raise DatasetApiError(message) from exc
+        raise DatasetAPIError(message) from exc
 
     try:
         body = json.loads(response)
     except json.JSONDecodeError as exc:
         message = "Planscape returned an invalid JSON dataset response."
-        raise DatasetApiError(message) from exc
+        raise DatasetPayloadError(message) from exc
 
-    if not isinstance(body, list):
-        message = "Planscape returned an invalid dataset browse response."
-        raise DatasetApiError(message)
     return body
 
 

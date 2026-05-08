@@ -1,9 +1,9 @@
 import pytest
 
+from planscape.api.exceptions import DatasetPayloadError
 from planscape.models.api.dataset import (
     BrowseDatasetResponse,
     CreateDatasetRequest,
-    DatasetPayloadError,
     DatasetResponse,
     UpdateDatasetRequest,
 )

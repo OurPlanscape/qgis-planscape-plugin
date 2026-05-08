@@ -6,19 +6,43 @@ if TYPE_CHECKING:
     from planscape.models.domain.auth import AuthErrorDetails
 
 
-class AuthApiError(Exception):
+class PlanscapeError(Exception):
+    pass
+
+
+class PlanscapeAPIError(PlanscapeError):
+    pass
+
+
+class PlanscapePayloadError(PlanscapeError):
+    pass
+
+
+class AuthAPIError(PlanscapeAPIError):
     def __init__(self, message: str, error_details: AuthErrorDetails | None = None) -> None:
         super().__init__(message)
         self.error_details = error_details
 
 
-class DataLayerApiError(Exception):
+class DataLayerAPIError(PlanscapeAPIError):
     pass
 
 
-class DatasetApiError(Exception):
+class DatasetAPIError(PlanscapeAPIError):
     pass
 
 
-class WorkspaceApiError(Exception):
+class WorkspaceAPIError(PlanscapeAPIError):
+    pass
+
+
+class DatasetPayloadError(PlanscapePayloadError):
+    pass
+
+
+class DataLayerPayloadError(PlanscapePayloadError):
+    pass
+
+
+class WorkspacePayloadError(PlanscapePayloadError):
     pass
