@@ -1,7 +1,68 @@
 import pytest
 
-from planscape.models.api.dataset import BrowseDatasetResponse, DatasetPayloadError
-from planscape.models.domain import DataLayer
+from planscape.api.exceptions import DatasetPayloadError
+from planscape.models.api.dataset import (
+    BrowseDatasetResponse,
+    CreateDatasetRequest,
+    DatasetResponse,
+    UpdateDatasetRequest,
+)
+from planscape.models.domain import DataLayer, Dataset, WorkspaceVisibility
+
+
+def test_create_dataset_request_serializes_payload():
+    request = CreateDatasetRequest(workspace_id=7, name="Base Data", visibility=WorkspaceVisibility.PUBLIC)
+
+    assert request.to_dict() == {
+        "workspace_id": 7,
+        "name": "Base Data",
+        "visibility": "PUBLIC",
+        "modules": ["forsys", "map", "prioritize_sub_units"],
+    }
+
+
+def test_create_dataset_request_serializes_optional_payload():
+    request = CreateDatasetRequest(
+        workspace_id=7,
+        name="Base Data",
+        organization=3,
+        version="2026.1",
+        modules="forsys, map",
+    )
+
+    assert request.to_dict() == {
+        "workspace_id": 7,
+        "name": "Base Data",
+        "visibility": "PRIVATE",
+        "modules": ["forsys", "map"],
+        "organization": 3,
+        "version": "2026.1",
+    }
+
+
+def test_update_dataset_request_omits_none_fields():
+    request = UpdateDatasetRequest(name="Updated Data")
+
+    assert request.to_dict() == {"name": "Updated Data"}
+
+
+def test_dataset_response_to_domain_preserves_visibility():
+    response = DatasetResponse.from_dict(
+        {"id": 20, "name": "Base Data", "visibility": "PUBLIC", "modules": ["forsys", "map"]}
+    )
+
+    assert response.to_domain() == Dataset(
+        id=20,
+        name="Base Data",
+        visibility=WorkspaceVisibility.PUBLIC,
+        modules="forsys,map",
+    )
+
+
+def test_dataset_response_uses_empty_modules_when_missing():
+    response = DatasetResponse.from_dict({"id": 20, "name": "Base Data", "visibility": "PUBLIC"})
+
+    assert response.to_domain().modules == ""
 
 
 def test_browse_dataset_response_parses_raw_list():

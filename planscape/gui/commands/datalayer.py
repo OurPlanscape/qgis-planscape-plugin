@@ -15,7 +15,8 @@ from qgis.core import (
 from qgis.PyQt.QtGui import QColor
 
 from planscape import auth
-from planscape.api.datalayer import DataLayerApiError, retrieve_datalayer_urls_request
+from planscape.api.datalayer import retrieve_datalayer_urls_request
+from planscape.api.exceptions import DataLayerAPIError
 
 if TYPE_CHECKING:
     from planscape.models.domain import DataLayer
@@ -74,7 +75,7 @@ def _datalayer_url(datalayer: DataLayer) -> str | None:
             auth.ensure_authenticated(),
             datalayer.id,
         )
-    except DataLayerApiError as exc:
+    except DataLayerAPIError as exc:
         logger.info("Failed to retrieve datalayer URLs: %s", exc)
         return None
     logger.info("Datalayer URLs request took %.3fs", perf_counter() - started_at)

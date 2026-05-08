@@ -5,6 +5,8 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from planscape.api.common import log_api_failure, log_api_success
+from planscape.api.exceptions import AuthAPIError
 from planscape.models.api.auth import AuthPayloadError, LoginErrorPayload
 from planscape.qgis_plugin_tools.tools.exceptions import QgsPluginException
 from planscape.qgis_plugin_tools.tools.network import post
@@ -22,15 +24,8 @@ class LoginTokens:
     refresh_token: str
 
 
-class AuthApiError(Exception):
-    def __init__(self, message: str, error_details: AuthErrorDetails | None = None) -> None:
-        super().__init__(message)
-        self.error_details = error_details
-
-
 def sign_in_request(email: str, password: str, base_url: str) -> LoginTokens:
     url = f"{base_url}{LOGIN_PATH}"
-    logger.info("[API] POST:%s", url)
     try:
         response = post(
             url,
@@ -43,23 +38,32 @@ def sign_in_request(email: str, password: str, base_url: str) -> LoginTokens:
     except QgsPluginException as exc:
         error_details = _parse_login_error(str(exc))
         message = error_details.formatted_message() if error_details else str(exc)
-        raise AuthApiError(message, error_details) from exc
+        api_error = AuthAPIError(message, error_details)
+        log_api_failure(logger, "POST", url, api_error)
+        raise api_error from exc
 
     try:
         body = json.loads(response)
     except json.JSONDecodeError as exc:
         message = "Planscape returned an invalid login response."
-        raise AuthApiError(message) from exc
+        api_error = AuthAPIError(message)
+        log_api_failure(logger, "POST", url, api_error)
+        raise api_error from exc
 
     access_token = body.get("access")
     refresh_token = body.get("refresh")
     if not isinstance(access_token, str) or not access_token:
         message = "Planscape login did not return an access token."
-        raise AuthApiError(message)
+        api_error = AuthAPIError(message)
+        log_api_failure(logger, "POST", url, api_error)
+        raise api_error
     if not isinstance(refresh_token, str) or not refresh_token:
         message = "Planscape login did not return a refresh token."
-        raise AuthApiError(message)
+        api_error = AuthAPIError(message)
+        log_api_failure(logger, "POST", url, api_error)
+        raise api_error
 
+    log_api_success(logger, "POST", url)
     return LoginTokens(access_token=access_token, refresh_token=refresh_token)
 
 

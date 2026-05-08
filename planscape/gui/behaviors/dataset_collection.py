@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from planscape import auth
-from planscape.api.workspace import WorkspaceApiError, list_workspace_datasets_request
-from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, noop, refresh_action
+from planscape.api.exceptions import WorkspaceAPIError
+from planscape.api.workspace import list_workspace_datasets_request
+from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, refresh_action
+from planscape.gui.commands.dataset import create_dataset
 from planscape.models.domain import DatasetCollection, Model
 
 if TYPE_CHECKING:
@@ -27,8 +29,13 @@ class DatasetCollectionBehavior(DockNodeBehavior):
                 auth.ensure_authenticated(),
                 model.workspace_id,
             )
-        except WorkspaceApiError:
+        except WorkspaceAPIError:
             return []
 
-    def actions(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> list[QAction]:  # noqa: ARG002
-        return [action("New Dataset", context, noop), refresh_action(context, item)]
+    def actions(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> list[QAction]:
+        if not isinstance(model, DatasetCollection) or model.workspace_id is None:
+            return [refresh_action(context, item)]
+        return [
+            action("New Dataset", context, lambda: create_dataset(context, item, model.workspace_id)),  # type: ignore
+            refresh_action(context, item),
+        ]

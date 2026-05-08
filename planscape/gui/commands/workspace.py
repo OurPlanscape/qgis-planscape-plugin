@@ -5,8 +5,8 @@ from typing import TYPE_CHECKING
 from qgis.PyQt.QtCore import Qt
 
 from planscape import auth
+from planscape.api.exceptions import WorkspaceAPIError
 from planscape.api.workspace import (
-    WorkspaceApiError,
     create_workspace_request,
     update_workspace_request,
 )
@@ -36,7 +36,7 @@ def create_workspace(context: DockContext, item: QTreeWidgetItem) -> None:
             auth.ensure_authenticated(),
             request,
         )
-    except WorkspaceApiError:
+    except WorkspaceAPIError:
         return
 
     context.refresh_node(item)
@@ -66,7 +66,7 @@ def update_workspace(workspace: Workspace, context: DockContext, item: QTreeWidg
             workspace.id,
             request,
         )
-    except WorkspaceApiError:
+    except WorkspaceAPIError:
         return
 
     item.setText(0, updated_workspace.node_label())

@@ -3,8 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from planscape import auth
-from planscape.api.dataset import DatasetApiError, browse_dataset_request
-from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, noop, refresh_action
+from planscape.api.dataset import browse_dataset_request
+from planscape.api.exceptions import DatasetAPIError
+from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, refresh_action
+from planscape.gui.commands.dataset import update_dataset
 from planscape.models.domain import DataLayerCollection, Dataset, Model
 
 if TYPE_CHECKING:
@@ -27,7 +29,7 @@ class DatasetBehavior(DockNodeBehavior):
                 auth.ensure_authenticated(),
                 model.id,
             )
-        except DatasetApiError:
+        except DatasetAPIError:
             return [DataLayerCollection(dataset_id=model.id)]
 
         return [
@@ -38,5 +40,12 @@ class DatasetBehavior(DockNodeBehavior):
             )
         ]
 
-    def actions(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> list[QAction]:  # noqa: ARG002
-        return [action("Edit", context, noop), refresh_action(context, item)]
+    def actions(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> list[QAction]:
+        if not isinstance(model, Dataset):
+            return []
+        return [action("Edit", context, lambda: update_dataset(model, context, item)), refresh_action(context, item)]
+
+    def double_clicked(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> None:
+        if not isinstance(model, Dataset):
+            return
+        update_dataset(model, context, item)

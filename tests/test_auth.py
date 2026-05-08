@@ -3,7 +3,8 @@ from qgis.core import QgsProcessingException, QgsSettings
 from qgis.PyQt.QtWidgets import QLineEdit
 
 from planscape import auth
-from planscape.api.auth import AuthApiError, LoginTokens
+from planscape.api.auth import LoginTokens
+from planscape.api.exceptions import AuthAPIError
 from planscape.gui.auth_dialog import AuthDialog
 from planscape.processing.import_raster import ImportRasterAlgorithm
 from planscape.processing.import_vector import ImportVectorAlgorithm
@@ -85,7 +86,7 @@ def test_sign_in_wraps_auth_api_errors(monkeypatch):
     def fake_sign_in_request(email: str, password: str, base_url: str) -> LoginTokens:
         del email, password, base_url
         message = "Planscape returned an invalid login response."
-        raise AuthApiError(message)
+        raise AuthAPIError(message)
 
     monkeypatch.setattr(auth, "sign_in_request", fake_sign_in_request)
 
@@ -100,7 +101,7 @@ def test_sign_in_does_not_save_auth_configs_when_api_fails(monkeypatch):
     def fake_sign_in_request(email: str, password: str, base_url: str) -> LoginTokens:
         del email, password, base_url
         message = "Planscape login did not return an access token."
-        raise AuthApiError(message)
+        raise AuthAPIError(message)
 
     monkeypatch.setattr(auth, "sign_in_request", fake_sign_in_request)
     monkeypatch.setattr(auth, "_upsert_basic_auth_config", lambda *args: calls.append(args))

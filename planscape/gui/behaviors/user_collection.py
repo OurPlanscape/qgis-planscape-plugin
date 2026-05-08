@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from planscape import auth
-from planscape.api.workspace import WorkspaceApiError, list_workspace_users_request
+from planscape.api.exceptions import WorkspaceAPIError
+from planscape.api.workspace import list_workspace_users_request
 from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, noop, refresh_action
 from planscape.models.domain import Model, UserCollection
 
@@ -27,7 +28,7 @@ class UserCollectionBehavior(DockNodeBehavior):
                 auth.ensure_authenticated(),
                 model.workspace_id,
             )
-        except WorkspaceApiError:
+        except WorkspaceAPIError:
             return []
         else:
             return users

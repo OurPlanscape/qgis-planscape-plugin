@@ -3,9 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-
-class DataLayerPayloadError(Exception):
-    pass
+from planscape.api.exceptions import DataLayerPayloadError
 
 
 @dataclass(frozen=True)

@@ -1,8 +1,7 @@
 import pytest
 from qgis.PyQt.QtWidgets import QWidget
 
-from planscape.api.dataset import DatasetApiError
-from planscape.api.workspace import WorkspaceApiError
+from planscape.api.exceptions import DatasetAPIError, WorkspaceAPIError
 from planscape.gui.behaviors import behavior_for
 from planscape.gui.dock_nodes import LOADING_CHILD_LABEL, NODE_KIND_ROLE, NODE_OBJECT_ROLE, model_item
 from planscape.gui.planscape_dock import PlanscapeDockWidget
@@ -571,7 +570,7 @@ def test_planscape_dock_dataset_browse_error_returns_empty_data_layers(qgis_app,
     def fake_browse_dataset_request(base_url, authcfg_id, dataset_id):
         del base_url, authcfg_id, dataset_id
         message = "failed"
-        raise DatasetApiError(message)
+        raise DatasetAPIError(message)
 
     monkeypatch.setattr("planscape.gui.behaviors.dataset.browse_dataset_request", fake_browse_dataset_request)
 
@@ -755,7 +754,7 @@ def test_planscape_dock_collection_api_error_returns_empty_children(qgis_app, mo
     def fake_list_workspace_datasets_request(base_url, authcfg_id, workspace_id):
         del base_url, authcfg_id, workspace_id
         message = "failed"
-        raise WorkspaceApiError(message)
+        raise WorkspaceAPIError(message)
 
     monkeypatch.setattr(
         "planscape.gui.behaviors.dataset_collection.list_workspace_datasets_request",
@@ -1106,6 +1105,209 @@ def test_planscape_dock_update_workspace_updates_workspace_via_api(qgis_app, mon
         name="Updated Plan",
         visibility=WorkspaceVisibility.PRIVATE,
     )
+
+
+def test_planscape_dock_double_click_workspace_opens_workspace_dialog(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {}
+
+    class FakeDialog:
+        def __init__(self, parent=None, *, workspace_id="", name="", visibility="private"):
+            del parent
+            captured["workspace_id"] = workspace_id
+            captured["name"] = name
+            captured["visibility"] = visibility
+
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr("planscape.gui.commands.workspace.WorkspaceDialog", FakeDialog)
+
+    dock = PlanscapeDockWidget()
+    workspace = Workspace(id=7, name="Regional Plan", visibility=WorkspaceVisibility.PUBLIC)
+    item = model_item(workspace)
+
+    dock._handle_item_double_clicked(item, 0)
+
+    assert captured == {"workspace_id": "7", "name": "Regional Plan", "visibility": "public"}
+
+
+def test_planscape_dock_add_dataset_creates_dataset_and_refreshes(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {}
+
+    class FakeDialog:
+        def __init__(self, parent=None):
+            del parent
+
+        def exec(self):
+            return 1
+
+        def dataset_name(self):
+            return "New Dataset"
+
+        def dataset_visibility(self):
+            return "public"
+
+        def dataset_organization(self):
+            return 3
+
+        def dataset_version(self):
+            return "2026.1"
+
+        def dataset_modules(self):
+            return "forsys,map"
+
+    def fake_create_dataset_request(base_url, authcfg_id, request):
+        captured["base_url"] = base_url
+        captured["authcfg_id"] = authcfg_id
+        captured["request"] = request
+        return Dataset(id=21, name="New Dataset", visibility=WorkspaceVisibility.PUBLIC)
+
+    def fake_list_workspace_datasets_request(base_url, authcfg_id, workspace_id):
+        del base_url, authcfg_id, workspace_id
+        return [Dataset(id=21, name="New Dataset", visibility=WorkspaceVisibility.PUBLIC)]
+
+    monkeypatch.setattr("planscape.gui.commands.dataset.DatasetDialog", FakeDialog)
+    monkeypatch.setattr("planscape.gui.commands.dataset.auth.get_environment", lambda: "catalog")
+    monkeypatch.setattr(
+        "planscape.gui.commands.dataset.auth.get_base_url", lambda environment: f"https://{environment}.example"
+    )
+    monkeypatch.setattr("planscape.gui.commands.dataset.auth.ensure_authenticated", lambda: "authcfg-id")
+    monkeypatch.setattr("planscape.gui.commands.dataset.create_dataset_request", fake_create_dataset_request)
+    monkeypatch.setattr(
+        "planscape.gui.behaviors.dataset_collection.list_workspace_datasets_request",
+        fake_list_workspace_datasets_request,
+    )
+
+    dock = PlanscapeDockWidget()
+    collection = DatasetCollection(workspace_id=7)
+    item = model_item(collection)
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(item)
+    create_action = behavior_for(collection).actions(collection, dock._context(), item)[0]
+
+    create_action.trigger()
+
+    assert captured["base_url"] == "https://catalog.example"
+    assert captured["authcfg_id"] == "authcfg-id"
+    assert captured["request"].to_dict() == {
+        "workspace_id": 7,
+        "name": "New Dataset",
+        "visibility": "PUBLIC",
+        "modules": ["forsys", "map"],
+        "organization": 3,
+        "version": "2026.1",
+    }
+    assert item.childCount() == 1
+    assert item.child(0).text(0) == "New Dataset"
+
+
+def test_planscape_dock_update_dataset_prefills_dataset_dialog(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {}
+
+    class FakeDialog:
+        def __init__(self, parent=None, *, dataset_id="", name="", visibility="private"):
+            del parent
+            captured["dataset_id"] = dataset_id
+            captured["name"] = name
+            captured["visibility"] = visibility
+
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr("planscape.gui.commands.dataset.DatasetDialog", FakeDialog)
+
+    dock = PlanscapeDockWidget()
+    dataset = Dataset(id=20, name="Base Data", visibility=WorkspaceVisibility.PUBLIC)
+    item = model_item(dataset)
+
+    edit_action = behavior_for(dataset).actions(dataset, dock._context(), item)[0]
+    edit_action.trigger()
+
+    assert captured == {"dataset_id": "20", "name": "Base Data", "visibility": "public"}
+
+
+def test_planscape_dock_update_dataset_updates_dataset_via_api(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {}
+
+    class FakeDialog:
+        def __init__(self, parent=None, *, dataset_id="", name="", visibility="private"):
+            del parent, dataset_id, name, visibility
+
+        def exec(self):
+            return 1
+
+        def dataset_name(self):
+            return "Updated Data"
+
+        def dataset_visibility(self):
+            return "private"
+
+    def fake_update_dataset_request(base_url, authcfg_id, dataset_id, request):
+        captured["base_url"] = base_url
+        captured["authcfg_id"] = authcfg_id
+        captured["dataset_id"] = dataset_id
+        captured["request"] = request
+        return Dataset(id=20, name="Updated Data", visibility=WorkspaceVisibility.PRIVATE)
+
+    monkeypatch.setattr("planscape.gui.commands.dataset.DatasetDialog", FakeDialog)
+    monkeypatch.setattr("planscape.gui.commands.dataset.auth.get_environment", lambda: "catalog")
+    monkeypatch.setattr(
+        "planscape.gui.commands.dataset.auth.get_base_url", lambda environment: f"https://{environment}.example"
+    )
+    monkeypatch.setattr("planscape.gui.commands.dataset.auth.ensure_authenticated", lambda: "authcfg-id")
+    monkeypatch.setattr("planscape.gui.commands.dataset.update_dataset_request", fake_update_dataset_request)
+
+    dock = PlanscapeDockWidget()
+    dataset = Dataset(id=20, name="Base Data", visibility=WorkspaceVisibility.PUBLIC)
+    item = model_item(dataset)
+
+    edit_action = behavior_for(dataset).actions(dataset, dock._context(), item)[0]
+    edit_action.trigger()
+
+    assert captured["base_url"] == "https://catalog.example"
+    assert captured["authcfg_id"] == "authcfg-id"
+    assert captured["dataset_id"] == 20
+    assert captured["request"].to_dict() == {"name": "Updated Data", "visibility": "PRIVATE"}
+    assert item.text(0) == "Updated Data"
+    assert item.data(0, NODE_OBJECT_ROLE) == Dataset(
+        id=20,
+        name="Updated Data",
+        visibility=WorkspaceVisibility.PRIVATE,
+    )
+
+
+def test_planscape_dock_double_click_dataset_opens_dataset_dialog(qgis_app, monkeypatch):
+    assert qgis_app is not None
+
+    captured = {}
+
+    class FakeDialog:
+        def __init__(self, parent=None, *, dataset_id="", name="", visibility="private"):
+            del parent
+            captured["dataset_id"] = dataset_id
+            captured["name"] = name
+            captured["visibility"] = visibility
+
+        def exec(self):
+            return 0
+
+    monkeypatch.setattr("planscape.gui.commands.dataset.DatasetDialog", FakeDialog)
+
+    dock = PlanscapeDockWidget()
+    dataset = Dataset(id=20, name="Base Data", visibility=WorkspaceVisibility.PUBLIC)
+    item = model_item(dataset)
+
+    dock._handle_item_double_clicked(item, 0)
+
+    assert captured == {"dataset_id": "20", "name": "Base Data", "visibility": "public"}
 
 
 def test_planscape_dock_root_context_menu_has_auth_actions_in_order(qgis_app, monkeypatch):
