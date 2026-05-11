@@ -94,9 +94,13 @@ def test_paginated_workspace_response_rejects_invalid_results_shape():
 
 
 def test_workspace_dataset_list_response_parses_raw_list():
-    response = WorkspaceDatasetListResponse.from_list([{"id": 20, "name": "Base Data", "visibility": "PUBLIC"}])
+    response = WorkspaceDatasetListResponse.from_list(
+        [{"id": 20, "name": "Base Data", "visibility": "PUBLIC", "modules": ["map", "forsys"]}]
+    )
 
-    assert response.to_domain() == [Dataset(id=20, name="Base Data", visibility=WorkspaceVisibility.PUBLIC)]
+    assert response.to_domain() == [
+        Dataset(id=20, name="Base Data", visibility=WorkspaceVisibility.PUBLIC, modules=["map", "forsys"])
+    ]
 
 
 def test_workspace_style_list_response_parses_raw_list():

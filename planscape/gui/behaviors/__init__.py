@@ -7,6 +7,7 @@ from planscape.gui.behaviors.datalayer import DataLayerBehavior
 from planscape.gui.behaviors.datalayer_collection import DataLayerCollectionBehavior
 from planscape.gui.behaviors.dataset import DatasetBehavior
 from planscape.gui.behaviors.dataset_collection import DatasetCollectionBehavior
+from planscape.gui.behaviors.module_collection import ModuleCollectionBehavior
 from planscape.gui.behaviors.server import ServerBehavior
 from planscape.gui.behaviors.style_collection import StyleCollectionBehavior
 from planscape.gui.behaviors.user_collection import UserCollectionBehavior
@@ -17,6 +18,7 @@ NODE_BEHAVIORS: dict[NodeKind, DockNodeBehavior] = {
     NodeKind.SERVER: ServerBehavior(),
     NodeKind.WORKSPACE: WorkspaceBehavior(),
     NodeKind.DATASET_COLLECTION: DatasetCollectionBehavior(),
+    NodeKind.MODULE_COLLECTION: ModuleCollectionBehavior(),
     NodeKind.STYLE_COLLECTION: StyleCollectionBehavior(),
     NodeKind.USER_COLLECTION: UserCollectionBehavior(),
     NodeKind.DATASET: DatasetBehavior(),

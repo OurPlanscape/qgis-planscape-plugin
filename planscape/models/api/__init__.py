@@ -1,8 +1,9 @@
 """API payload models used by Planscape API modules."""
 
-from planscape.api.exceptions import DataLayerPayloadError, WorkspacePayloadError
-from planscape.models.api.datalayer import DataLayerUrlsResponse
+from planscape.api.exceptions import DataLayerPayloadError, StylePayloadError, WorkspacePayloadError
+from planscape.models.api.datalayer import CreateDataLayerRequest, CreateDataLayerResponse, DataLayerUrlsResponse
 from planscape.models.api.dataset import BrowseDataLayerResponse, BrowseDatasetResponse, BrowseDatasetTree
+from planscape.models.api.style import CreateStyleRequest, StyleResponse
 from planscape.models.api.workspace import (
     CreateWorkspaceRequest,
     PaginatedWorkspaceResponse,
@@ -21,9 +22,14 @@ __all__ = [
     "BrowseDatasetResponse",
     "BrowseDatasetTree",
     "CreateWorkspaceRequest",
+    "CreateDataLayerRequest",
+    "CreateDataLayerResponse",
+    "CreateStyleRequest",
     "DataLayerPayloadError",
     "DataLayerUrlsResponse",
     "PaginatedWorkspaceResponse",
+    "StylePayloadError",
+    "StyleResponse",
     "UpdateWorkspaceRequest",
     "WorkspaceDatasetListResponse",
     "WorkspaceDatasetResponse",
