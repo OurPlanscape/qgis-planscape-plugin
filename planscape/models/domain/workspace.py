@@ -21,6 +21,9 @@ class WorkspaceVisibility(StrEnum):
 @dataclass
 class Workspace(Model):
     visibility: WorkspaceVisibility = WorkspaceVisibility.PRIVATE
+    dataset_count: int | None = None
+    style_count: int | None = None
+    user_count: int | None = None
     datasets: list[Dataset] = field(default_factory=list)
     styles: list[Style] = field(default_factory=list)
     users: list[User] = field(default_factory=list)

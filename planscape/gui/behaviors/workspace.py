@@ -21,9 +21,9 @@ class WorkspaceBehavior(DockNodeBehavior):
         if not isinstance(model, Workspace):
             return []
         return [
-            DatasetCollection(workspace_id=model.id, datasets=list(model.datasets)),
-            StyleCollection(workspace_id=model.id, styles=list(model.styles)),
-            UserCollection(workspace_id=model.id, users=list(model.users)),
+            DatasetCollection(workspace_id=model.id, count=model.dataset_count, datasets=list(model.datasets)),
+            StyleCollection(workspace_id=model.id, count=model.style_count, styles=list(model.styles)),
+            UserCollection(workspace_id=model.id, count=model.user_count, users=list(model.users)),
         ]
 
     def actions(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> list[QAction]:
