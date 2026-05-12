@@ -32,7 +32,7 @@ def create_dataset(context: DockContext, item: QTreeWidgetItem, workspace_id: in
         modules=dialog.dataset_modules(),
     )
     try:
-        create_dataset_request(
+        created_dataset = create_dataset_request(
             auth.get_base_url(auth.get_environment()),
             auth.ensure_authenticated(),
             request,
@@ -40,7 +40,9 @@ def create_dataset(context: DockContext, item: QTreeWidgetItem, workspace_id: in
     except DatasetAPIError:
         return
 
+    _increment_dataset_count(item)
     context.refresh_node(item)
+    _ensure_dataset_child(item, created_dataset)
 
 
 def update_dataset(dataset: Dataset, context: DockContext, item: QTreeWidgetItem) -> None:
@@ -72,3 +74,33 @@ def update_dataset(dataset: Dataset, context: DockContext, item: QTreeWidgetItem
 
     item.setText(0, updated_dataset.node_label())
     item.setData(0, Qt.ItemDataRole.UserRole, updated_dataset)
+
+
+def _increment_dataset_count(item: QTreeWidgetItem) -> None:
+    from planscape.models.domain import DatasetCollection
+
+    model = item.data(0, Qt.ItemDataRole.UserRole)
+    if not isinstance(model, DatasetCollection) or model.count is None:
+        return
+
+    model.count += 1
+    item.setText(0, model.node_label())
+    item.setData(0, Qt.ItemDataRole.UserRole, model)
+
+
+def _ensure_dataset_child(item: QTreeWidgetItem, dataset: Dataset) -> None:
+    from planscape.gui.dock_nodes import model_item
+    from planscape.models.domain import DatasetCollection
+
+    dataset_key = dataset.node_key()
+    for index in range(item.childCount()):
+        child_model = item.child(index).data(0, Qt.ItemDataRole.UserRole)
+        if getattr(child_model, "node_key", lambda: None)() == dataset_key:
+            return
+
+    collection = item.data(0, Qt.ItemDataRole.UserRole)
+    if isinstance(collection, DatasetCollection):
+        collection.datasets.append(dataset)
+        item.setData(0, Qt.ItemDataRole.UserRole, collection)
+
+    item.addChild(model_item(dataset))

@@ -39,6 +39,9 @@ def test_domain_nodes_provide_default_node_labels():
     assert Server(name="Planscape", env="catalog").node_label() == "Planscape (catalog)"
     assert LoginNode().node_label() == "Click to login"
     assert DatasetCollection(workspace_id=10).node_label() == "Datasets"
+    assert DatasetCollection(workspace_id=10, count=3).node_label() == "Datasets (3)"
+    assert StyleCollection(workspace_id=10, count=2).node_label() == "Styles (2)"
+    assert UserCollection(workspace_id=10, count=5).node_label() == "Users (5)"
     assert DatasetCollection(workspace_id=10).node_key() == "dataset_collection:workspace:10"
     assert DataLayerCollection(dataset_id=20).node_key() == "datalayer_collection:dataset:20"
 

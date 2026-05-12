@@ -14,8 +14,14 @@ if TYPE_CHECKING:
 class UserCollection(Model):
     name: str = "Users"
     workspace_id: int | str | None = None
+    count: int | None = None
     users: list[User] = field(default_factory=list)
     kind: NodeKind = field(default=NodeKind.USER_COLLECTION, init=False)
+
+    def node_label(self) -> str:
+        if self.count is None:
+            return self.name
+        return f"{self.name} ({self.count})"
 
     def node_key(self) -> str:
         return f"{self.kind}:workspace:{self.workspace_id}"

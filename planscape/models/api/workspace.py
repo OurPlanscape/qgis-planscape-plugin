@@ -38,6 +38,9 @@ class WorkspaceResponse:
     name: str
     visibility: WorkspaceVisibility = WorkspaceVisibility.PRIVATE
     id: int | None = None
+    dataset_count: int | None = None
+    style_count: int | None = None
+    user_count: int | None = None
     created_at: str | None = None
     updated_at: str | None = None
     deleted_at: str | None = None
@@ -48,17 +51,29 @@ class WorkspaceResponse:
             message = "Workspace response must be an object."
             raise WorkspacePayloadError(message)
 
+        counts = _workspace_counts(payload.get("counts"))
+
         return cls(
             id=_optional_int(payload.get("id"), "id"),
             name=_required_string(payload.get("name"), "name"),
             visibility=_visibility(payload.get("visibility", WorkspaceVisibility.PRIVATE.value)),
+            dataset_count=counts.get("datasets"),
+            style_count=counts.get("styles"),
+            user_count=counts.get("users"),
             created_at=_optional_string(payload.get("created_at"), "created_at"),
             updated_at=_optional_string(payload.get("updated_at"), "updated_at"),
             deleted_at=_optional_string(payload.get("deleted_at"), "deleted_at"),
         )
 
     def to_domain(self) -> Workspace:
-        return Workspace(id=self.id, name=self.name, visibility=self.visibility)
+        return Workspace(
+            id=self.id,
+            name=self.name,
+            visibility=self.visibility,
+            dataset_count=self.dataset_count,
+            style_count=self.style_count,
+            user_count=self.user_count,
+        )
 
 
 @dataclass(frozen=True)
@@ -233,6 +248,19 @@ def _optional_int(value: Any, field_name: str) -> int | None:
     if value is None:
         return None
     return _required_int(value, field_name)
+
+
+def _workspace_counts(value: Any) -> dict[str, int | None]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        message = "counts must be an object."
+        raise WorkspacePayloadError(message)
+    return {
+        "datasets": _optional_int(value.get("datasets"), "counts.datasets"),
+        "styles": _optional_int(value.get("styles"), "counts.styles"),
+        "users": _optional_int(value.get("users"), "counts.users"),
+    }
 
 
 def _visibility(value: Any) -> WorkspaceVisibility:

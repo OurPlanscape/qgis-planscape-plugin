@@ -390,6 +390,23 @@ def test_planscape_dock_workspace_expands_to_collection_nodes(qgis_app, monkeypa
     ]
 
 
+def test_workspace_child_collection_labels_include_counts(qgis_app):
+    assert qgis_app is not None
+
+    dock = PlanscapeDockWidget()
+    parent = model_item(Workspace(id=7, name="Regional Plan", dataset_count=3, style_count=2, user_count=5))
+    dock.tree.clear()
+    dock.tree.addTopLevelItem(parent)
+
+    dock._load_item_children(parent)
+
+    assert [parent.child(index).text(0) for index in range(parent.childCount())] == [
+        "Datasets (3)",
+        "Styles (2)",
+        "Users (5)",
+    ]
+
+
 def test_expandable_model_items_show_loading_icon(qgis_app):
     assert qgis_app is not None
 
@@ -1168,7 +1185,7 @@ def test_planscape_dock_add_dataset_creates_dataset_and_refreshes(qgis_app, monk
 
     def fake_list_workspace_datasets_request(base_url, authcfg_id, workspace_id):
         del base_url, authcfg_id, workspace_id
-        return [Dataset(id=21, name="New Dataset", visibility=WorkspaceVisibility.PUBLIC)]
+        return []
 
     monkeypatch.setattr("planscape.gui.commands.dataset.DatasetDialog", FakeDialog)
     monkeypatch.setattr("planscape.gui.commands.dataset.auth.get_environment", lambda: "catalog")
@@ -1183,7 +1200,7 @@ def test_planscape_dock_add_dataset_creates_dataset_and_refreshes(qgis_app, monk
     )
 
     dock = PlanscapeDockWidget()
-    collection = DatasetCollection(workspace_id=7)
+    collection = DatasetCollection(workspace_id=7, count=0)
     item = model_item(collection)
     dock.tree.clear()
     dock.tree.addTopLevelItem(item)
@@ -1203,6 +1220,8 @@ def test_planscape_dock_add_dataset_creates_dataset_and_refreshes(qgis_app, monk
     }
     assert item.childCount() == 1
     assert item.child(0).text(0) == "New Dataset"
+    assert item.text(0) == "Datasets (1)"
+    assert item.data(0, NODE_OBJECT_ROLE).count == 1
 
 
 def test_planscape_dock_update_dataset_prefills_dataset_dialog(qgis_app, monkeypatch):

@@ -37,6 +37,7 @@ def test_workspace_response_parses_full_workspace_payload():
             "id": 10,
             "name": "Regional Plan",
             "visibility": "PUBLIC",
+            "counts": {"datasets": 3, "styles": 2, "users": 5},
             "created_at": None,
             "updated_at": "2026-04-29T12:00:00Z",
             "deleted_at": None,
@@ -46,6 +47,9 @@ def test_workspace_response_parses_full_workspace_payload():
     assert response.id == 10
     assert response.name == "Regional Plan"
     assert response.visibility == WorkspaceVisibility.PUBLIC
+    assert response.dataset_count == 3
+    assert response.style_count == 2
+    assert response.user_count == 5
     assert response.updated_at == "2026-04-29T12:00:00Z"
 
 
@@ -56,13 +60,23 @@ def test_workspace_response_accepts_create_response_shape():
 
 
 def test_workspace_response_maps_to_domain_workspace():
-    response = WorkspaceResponse.from_dict({"id": 10, "name": "Regional Plan", "visibility": "PUBLIC"})
+    response = WorkspaceResponse.from_dict(
+        {
+            "id": 10,
+            "name": "Regional Plan",
+            "visibility": "PUBLIC",
+            "counts": {"datasets": 3, "styles": 2, "users": 5},
+        }
+    )
 
     workspace = response.to_domain()
 
     assert workspace.id == 10
     assert workspace.name == "Regional Plan"
     assert workspace.visibility == WorkspaceVisibility.PUBLIC
+    assert workspace.dataset_count == 3
+    assert workspace.style_count == 2
+    assert workspace.user_count == 5
 
 
 def test_paginated_workspace_response_parses_results():
@@ -86,6 +100,11 @@ def test_paginated_workspace_response_parses_results():
 def test_workspace_response_rejects_invalid_visibility():
     with pytest.raises(WorkspacePayloadError, match="Unsupported workspace visibility"):
         WorkspaceResponse.from_dict({"name": "Regional Plan", "visibility": "SHARED"})
+
+
+def test_workspace_response_rejects_invalid_counts_shape():
+    with pytest.raises(WorkspacePayloadError, match="counts must be an object"):
+        WorkspaceResponse.from_dict({"name": "Regional Plan", "counts": []})
 
 
 def test_paginated_workspace_response_rejects_invalid_results_shape():
