@@ -55,5 +55,32 @@ def refresh_action(context: DockContext, item: QTreeWidgetItem) -> QAction:
     return qaction
 
 
+def separator(context: DockContext) -> QAction:
+    qaction = QAction(context.tree)
+    qaction.setSeparator(True)
+    return qaction
+
+
+def ordered_actions(
+    context: DockContext,
+    refresh: QAction,
+    *,
+    edit: QAction | None = None,
+    others: list[QAction] | None = None,
+) -> list[QAction]:
+    actions = [refresh]
+    other_actions = others or []
+    if edit is None and not other_actions:
+        return actions
+
+    actions.append(separator(context))
+    if edit is not None:
+        actions.append(edit)
+        if other_actions:
+            actions.append(separator(context))
+    actions.extend(other_actions)
+    return actions
+
+
 def noop() -> None:
     return None

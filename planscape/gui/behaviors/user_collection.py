@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from planscape import auth
 from planscape.api.exceptions import WorkspaceAPIError
 from planscape.api.workspace import list_workspace_users_request
-from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, noop, refresh_action
+from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, noop, ordered_actions, refresh_action
 from planscape.models.domain import Model, UserCollection
 
 if TYPE_CHECKING:
@@ -34,4 +34,4 @@ class UserCollectionBehavior(DockNodeBehavior):
             return users
 
     def actions(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> list[QAction]:  # noqa: ARG002
-        return [action("Invite User", context, noop), refresh_action(context, item)]
+        return ordered_actions(context, refresh_action(context, item), others=[action("Invite User", context, noop)])

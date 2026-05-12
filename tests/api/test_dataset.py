@@ -34,7 +34,7 @@ def test_create_dataset_request_calls_post_with_admin_dataset_url(monkeypatch):
             "workspace_id": 7,
             "name": "Base Data",
             "visibility": "PRIVATE",
-            "modules": ["forsys", "map", "prioritize_sub_units"],
+            "modules": ["map", "forsys", "prioritize_sub_units"],
         },
     }
     assert created_dataset.id == 20
@@ -59,7 +59,7 @@ def test_create_dataset_request_logs_api_call(monkeypatch):
 def test_update_dataset_request_calls_put_with_admin_dataset_url(monkeypatch):
     captured = {}
 
-    def fake_put(url: str, authcfg_id: str = "", data: dict[str, str] | None = None) -> str:
+    def fake_put(url: str, authcfg_id: str = "", data: dict[str, object] | None = None) -> str:
         captured["url"] = url
         captured["authcfg_id"] = authcfg_id
         captured["data"] = data
@@ -71,13 +71,13 @@ def test_update_dataset_request_calls_put_with_admin_dataset_url(monkeypatch):
         BASE_URL,
         AUTHCFG_ID,
         20,
-        UpdateDatasetRequest(name="Updated Data", visibility=WorkspaceVisibility.PUBLIC),
+        UpdateDatasetRequest(name="Updated Data", visibility=WorkspaceVisibility.PUBLIC, modules=["map"]),
     )
 
     assert captured == {
         "url": f"{BASE_URL}/v2/admin/datasets/20/",
         "authcfg_id": AUTHCFG_ID,
-        "data": {"name": "Updated Data", "visibility": "PUBLIC"},
+        "data": {"name": "Updated Data", "visibility": "PUBLIC", "modules": ["map"]},
     }
     assert updated_dataset.id == 20
     assert updated_dataset.name == "Updated Data"

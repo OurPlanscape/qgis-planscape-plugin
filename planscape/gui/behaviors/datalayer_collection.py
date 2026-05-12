@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, noop, refresh_action
+from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, noop, ordered_actions, refresh_action
 from planscape.models.domain import DataLayerCollection, Model
 
 if TYPE_CHECKING:
@@ -20,4 +20,4 @@ class DataLayerCollectionBehavior(DockNodeBehavior):
         return [*model.categories, *model.datalayers]
 
     def actions(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> list[QAction]:  # noqa: ARG002
-        return [action("New Data Layer", context, noop), refresh_action(context, item)]
+        return ordered_actions(context, refresh_action(context, item), others=[action("New Data Layer", context, noop)])

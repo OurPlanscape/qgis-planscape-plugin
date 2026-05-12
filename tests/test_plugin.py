@@ -96,6 +96,19 @@ def test_plugin_name():
     assert plugin_name() == "Planscape"
 
 
+def action_by_text(actions, text):
+    for action in actions:
+        if action.text() == text:
+            return action
+    pytest.fail(f"Action not found: {text}")
+
+
+def menu_action_label(action):
+    if action.isSeparator():
+        return "<separator>"
+    return action.text()
+
+
 def test_plugin_init_gui_creates_and_shows_dock(monkeypatch):
     state = {"added_provider": False, "added_dock": None, "shown": False}
 
@@ -841,7 +854,7 @@ def test_planscape_dock_server_context_menu_has_add_workspace_action(qgis_app, m
             del parent
 
         def addAction(self, action):
-            captured["actions"].append(action.text())
+            captured["actions"].append(menu_action_label(action))
 
         def exec(self, position):
             del position
@@ -856,7 +869,7 @@ def test_planscape_dock_server_context_menu_has_add_workspace_action(qgis_app, m
 
     dock._show_context_menu(root_rect.center())
 
-    assert captured["actions"] == ["Create new Workspace", "Refresh", "Login another env", "Logout"]
+    assert captured["actions"] == ["Refresh", "<separator>", "Create new Workspace", "Login another env", "Logout"]
 
 
 def test_planscape_dock_collection_context_menu_has_refresh_action(qgis_app, monkeypatch):
@@ -869,7 +882,7 @@ def test_planscape_dock_collection_context_menu_has_refresh_action(qgis_app, mon
             del parent
 
         def addAction(self, action):
-            captured["actions"].append(action.text())
+            captured["actions"].append(menu_action_label(action))
 
         def exec(self, position):
             del position
@@ -896,7 +909,7 @@ def test_planscape_dock_collection_context_menu_has_refresh_action(qgis_app, mon
 
     dock._show_context_menu(dock.tree.rect().center())
 
-    assert captured["actions"] == ["New Dataset", "Refresh"]
+    assert captured["actions"] == ["Refresh", "<separator>", "New Dataset"]
 
 
 def test_planscape_dock_workspace_context_menu_has_edit_action(qgis_app, monkeypatch):
@@ -909,7 +922,7 @@ def test_planscape_dock_workspace_context_menu_has_edit_action(qgis_app, monkeyp
             del parent
 
         def addAction(self, action):
-            captured["actions"].append(action.text())
+            captured["actions"].append(menu_action_label(action))
 
         def exec(self, position):
             del position
@@ -934,7 +947,7 @@ def test_planscape_dock_workspace_context_menu_has_edit_action(qgis_app, monkeyp
 
     dock._show_context_menu(dock.tree.rect().center())
 
-    assert captured["actions"] == ["Edit", "Refresh"]
+    assert captured["actions"] == ["Refresh", "<separator>", "Edit"]
 
 
 def test_planscape_dock_add_workspace_opens_workspace_dialog(qgis_app, monkeypatch):
@@ -954,7 +967,7 @@ def test_planscape_dock_add_workspace_opens_workspace_dialog(qgis_app, monkeypat
     dock = PlanscapeDockWidget()
     server = Server(name="Planscape", env="catalog")
     item = dock._server_item(server)
-    create_action = behavior_for(server).actions(server, dock._context(), item)[0]
+    create_action = action_by_text(behavior_for(server).actions(server, dock._context(), item), "Create new Workspace")
 
     create_action.trigger()
 
@@ -1003,7 +1016,7 @@ def test_planscape_dock_add_workspace_creates_workspace_and_refreshes(qgis_app, 
     dock.tree.clear()
     dock.tree.addTopLevelItem(dock._server_item(server))
     item = dock.tree.topLevelItem(0)
-    create_action = behavior_for(server).actions(server, dock._context(), item)[0]
+    create_action = action_by_text(behavior_for(server).actions(server, dock._context(), item), "Create new Workspace")
 
     create_action.trigger()
 
@@ -1038,7 +1051,7 @@ def test_planscape_dock_update_workspace_prefills_workspace_dialog(qgis_app, mon
     dock._load_item_children(dock.tree.topLevelItem(0))
     workspace_item = dock.tree.topLevelItem(0).child(0)
 
-    edit_action = behavior_for(workspace).actions(workspace, dock._context(), workspace_item)[0]
+    edit_action = action_by_text(behavior_for(workspace).actions(workspace, dock._context(), workspace_item), "Edit")
     edit_action.trigger()
 
     assert captured == {"workspace_id": "7", "name": "Regional Plan", "visibility": "public"}
@@ -1071,7 +1084,7 @@ def test_planscape_dock_update_workspace_cancel_does_not_update(qgis_app, monkey
     dock._load_item_children(dock.tree.topLevelItem(0))
     item = dock.tree.topLevelItem(0).child(0)
 
-    edit_action = behavior_for(workspace).actions(workspace, dock._context(), item)[0]
+    edit_action = action_by_text(behavior_for(workspace).actions(workspace, dock._context(), item), "Edit")
     edit_action.trigger()
 
     assert state["update_called"] is False
@@ -1113,7 +1126,7 @@ def test_planscape_dock_update_workspace_updates_workspace_via_api(qgis_app, mon
     dock._load_item_children(dock.tree.topLevelItem(0))
     item = dock.tree.topLevelItem(0).child(0)
 
-    edit_action = behavior_for(workspace).actions(workspace, dock._context(), item)[0]
+    edit_action = action_by_text(behavior_for(workspace).actions(workspace, dock._context(), item), "Edit")
     edit_action.trigger()
 
     assert captured["base_url"] == "https://catalog.example"
@@ -1179,7 +1192,7 @@ def test_planscape_dock_add_dataset_creates_dataset_and_refreshes(qgis_app, monk
             return "2026.1"
 
         def dataset_modules(self):
-            return "forsys,map"
+            return ["forsys", "map"]
 
     def fake_create_dataset_request(base_url, authcfg_id, request):
         captured["base_url"] = base_url
@@ -1208,7 +1221,7 @@ def test_planscape_dock_add_dataset_creates_dataset_and_refreshes(qgis_app, monk
     item = model_item(collection)
     dock.tree.clear()
     dock.tree.addTopLevelItem(item)
-    create_action = behavior_for(collection).actions(collection, dock._context(), item)[0]
+    create_action = action_by_text(behavior_for(collection).actions(collection, dock._context(), item), "New Dataset")
 
     create_action.trigger()
 
@@ -1234,11 +1247,12 @@ def test_planscape_dock_update_dataset_prefills_dataset_dialog(qgis_app, monkeyp
     captured = {}
 
     class FakeDialog:
-        def __init__(self, parent=None, *, dataset_id="", name="", visibility="private"):
+        def __init__(self, parent=None, *, dataset_id="", name="", visibility="private", modules=None):
             del parent
             captured["dataset_id"] = dataset_id
             captured["name"] = name
             captured["visibility"] = visibility
+            captured["modules"] = modules
 
         def exec(self):
             return 0
@@ -1246,13 +1260,18 @@ def test_planscape_dock_update_dataset_prefills_dataset_dialog(qgis_app, monkeyp
     monkeypatch.setattr("planscape.gui.commands.dataset.DatasetDialog", FakeDialog)
 
     dock = PlanscapeDockWidget()
-    dataset = Dataset(id=20, name="Base Data", visibility=WorkspaceVisibility.PUBLIC)
+    dataset = Dataset(id=20, name="Base Data", visibility=WorkspaceVisibility.PUBLIC, modules=["map", "forsys"])
     item = model_item(dataset)
 
-    edit_action = behavior_for(dataset).actions(dataset, dock._context(), item)[0]
+    edit_action = action_by_text(behavior_for(dataset).actions(dataset, dock._context(), item), "Edit")
     edit_action.trigger()
 
-    assert captured == {"dataset_id": "20", "name": "Base Data", "visibility": "public"}
+    assert captured == {
+        "dataset_id": "20",
+        "name": "Base Data",
+        "visibility": "public",
+        "modules": ["map", "forsys"],
+    }
 
 
 def test_planscape_dock_update_dataset_updates_dataset_via_api(qgis_app, monkeypatch):
@@ -1261,8 +1280,8 @@ def test_planscape_dock_update_dataset_updates_dataset_via_api(qgis_app, monkeyp
     captured = {}
 
     class FakeDialog:
-        def __init__(self, parent=None, *, dataset_id="", name="", visibility="private"):
-            del parent, dataset_id, name, visibility
+        def __init__(self, parent=None, *, dataset_id="", name="", visibility="private", modules=None):
+            del parent, dataset_id, name, visibility, modules
 
         def exec(self):
             return 1
@@ -1273,12 +1292,20 @@ def test_planscape_dock_update_dataset_updates_dataset_via_api(qgis_app, monkeyp
         def dataset_visibility(self):
             return "private"
 
+        def dataset_modules(self):
+            return ["map", "prioritize_sub_units"]
+
     def fake_update_dataset_request(base_url, authcfg_id, dataset_id, request):
         captured["base_url"] = base_url
         captured["authcfg_id"] = authcfg_id
         captured["dataset_id"] = dataset_id
         captured["request"] = request
-        return Dataset(id=20, name="Updated Data", visibility=WorkspaceVisibility.PRIVATE)
+        return Dataset(
+            id=20,
+            name="Updated Data",
+            visibility=WorkspaceVisibility.PRIVATE,
+            modules=["map", "prioritize_sub_units"],
+        )
 
     monkeypatch.setattr("planscape.gui.commands.dataset.DatasetDialog", FakeDialog)
     monkeypatch.setattr("planscape.gui.commands.dataset.auth.get_environment", lambda: "catalog")
@@ -1292,18 +1319,23 @@ def test_planscape_dock_update_dataset_updates_dataset_via_api(qgis_app, monkeyp
     dataset = Dataset(id=20, name="Base Data", visibility=WorkspaceVisibility.PUBLIC)
     item = model_item(dataset)
 
-    edit_action = behavior_for(dataset).actions(dataset, dock._context(), item)[0]
+    edit_action = action_by_text(behavior_for(dataset).actions(dataset, dock._context(), item), "Edit")
     edit_action.trigger()
 
     assert captured["base_url"] == "https://catalog.example"
     assert captured["authcfg_id"] == "authcfg-id"
     assert captured["dataset_id"] == 20
-    assert captured["request"].to_dict() == {"name": "Updated Data", "visibility": "PRIVATE"}
+    assert captured["request"].to_dict() == {
+        "name": "Updated Data",
+        "visibility": "PRIVATE",
+        "modules": ["map", "prioritize_sub_units"],
+    }
     assert item.text(0) == "Updated Data"
     assert item.data(0, NODE_OBJECT_ROLE) == Dataset(
         id=20,
         name="Updated Data",
         visibility=WorkspaceVisibility.PRIVATE,
+        modules=["map", "prioritize_sub_units"],
     )
 
 
@@ -1313,11 +1345,12 @@ def test_planscape_dock_double_click_dataset_opens_dataset_dialog(qgis_app, monk
     captured = {}
 
     class FakeDialog:
-        def __init__(self, parent=None, *, dataset_id="", name="", visibility="private"):
+        def __init__(self, parent=None, *, dataset_id="", name="", visibility="private", modules=None):
             del parent
             captured["dataset_id"] = dataset_id
             captured["name"] = name
             captured["visibility"] = visibility
+            captured["modules"] = modules
 
         def exec(self):
             return 0
@@ -1325,12 +1358,12 @@ def test_planscape_dock_double_click_dataset_opens_dataset_dialog(qgis_app, monk
     monkeypatch.setattr("planscape.gui.commands.dataset.DatasetDialog", FakeDialog)
 
     dock = PlanscapeDockWidget()
-    dataset = Dataset(id=20, name="Base Data", visibility=WorkspaceVisibility.PUBLIC)
+    dataset = Dataset(id=20, name="Base Data", visibility=WorkspaceVisibility.PUBLIC, modules=["map"])
     item = model_item(dataset)
 
     dock._handle_item_double_clicked(item, 0)
 
-    assert captured == {"dataset_id": "20", "name": "Base Data", "visibility": "public"}
+    assert captured == {"dataset_id": "20", "name": "Base Data", "visibility": "public", "modules": ["map"]}
 
 
 def test_planscape_dock_root_context_menu_has_auth_actions_in_order(qgis_app, monkeypatch):
@@ -1343,7 +1376,7 @@ def test_planscape_dock_root_context_menu_has_auth_actions_in_order(qgis_app, mo
             del parent
 
         def addAction(self, action):
-            captured["actions"].append(action.text())
+            captured["actions"].append(menu_action_label(action))
 
         def exec(self, position):
             del position
@@ -1358,7 +1391,7 @@ def test_planscape_dock_root_context_menu_has_auth_actions_in_order(qgis_app, mo
 
     dock._show_context_menu(root_rect.center())
 
-    assert captured["actions"] == ["Create new Workspace", "Refresh", "Login another env", "Logout"]
+    assert captured["actions"] == ["Refresh", "<separator>", "Create new Workspace", "Login another env", "Logout"]
 
 
 def test_planscape_dock_login_another_env_signs_out_opens_auth_and_refreshes(qgis_app, monkeypatch):

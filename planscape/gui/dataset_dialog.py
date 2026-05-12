@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QIntValidator
-from qgis.PyQt.QtWidgets import QDialog, QWidget
+from qgis.PyQt.QtWidgets import QDialog, QListWidgetItem, QWidget
 
 from planscape.qgis_plugin_tools.tools.resources import load_ui
 
 FORM_CLASS: QWidget
 FORM_CLASS = load_ui("dataset_dialog.ui")
-DEFAULT_DATASET_MODULES = "forsys,map,prioritize_sub_units"
+AVAILABLE_DATASET_MODULES = ["map", "forsys", "prioritize_sub_units"]
+DEFAULT_DATASET_MODULES = list(AVAILABLE_DATASET_MODULES)
 
 
 class DatasetDialog(QDialog, FORM_CLASS):
@@ -20,7 +22,7 @@ class DatasetDialog(QDialog, FORM_CLASS):
         visibility: str = "private",
         organization: int | str | None = None,
         version: str = "",
-        modules: str = DEFAULT_DATASET_MODULES,
+        modules: list[str] | None = None,
     ) -> None:
         super().__init__(parent)
         self.setupUi(self)
@@ -32,7 +34,7 @@ class DatasetDialog(QDialog, FORM_CLASS):
         self.visibility_combo.setCurrentText(visibility)
         self.organization_input.setText("" if organization is None else str(organization))
         self.version_input.setText(version)
-        self.modules_input.setText(modules)
+        self._populate_modules(modules or DEFAULT_DATASET_MODULES)
         self.name_input.setFocus()
 
         self.cancel_button.clicked.connect(self.reject)
@@ -59,5 +61,19 @@ class DatasetDialog(QDialog, FORM_CLASS):
             return None
         return value
 
-    def dataset_modules(self) -> str:
-        return self.modules_input.text().strip()
+    def dataset_modules(self) -> list[str]:
+        modules = []
+        for index in range(self.modules_input.count()):
+            item = self.modules_input.item(index)
+            if item.checkState() == Qt.CheckState.Checked:
+                modules.append(item.text())
+        return modules
+
+    def _populate_modules(self, selected_modules: list[str]) -> None:
+        selected = set(selected_modules)
+        self.modules_input.clear()
+        for module in AVAILABLE_DATASET_MODULES:
+            item = QListWidgetItem(module)
+            item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
+            item.setCheckState(Qt.CheckState.Checked if module in selected else Qt.CheckState.Unchecked)
+            self.modules_input.addItem(item)

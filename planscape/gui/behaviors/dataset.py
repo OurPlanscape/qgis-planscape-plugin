@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from planscape import auth
 from planscape.api.dataset import browse_dataset_request
 from planscape.api.exceptions import DatasetAPIError
-from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, refresh_action
+from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, ordered_actions, refresh_action
 from planscape.gui.commands.datalayer_import import open_import_raster_dialog
 from planscape.gui.commands.dataset import update_dataset
 from planscape.models.domain import DataLayerCollection, Dataset, Model, Module, ModuleCollection
@@ -45,11 +45,12 @@ class DatasetBehavior(DockNodeBehavior):
     def actions(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> list[QAction]:
         if not isinstance(model, Dataset):
             return []
-        return [
-            action("Edit", context, lambda: update_dataset(model, context, item)),
-            action("Import Raster...", context, lambda: open_import_raster_dialog(model, item)),
+        return ordered_actions(
+            context,
             refresh_action(context, item),
-        ]
+            edit=action("Edit", context, lambda: update_dataset(model, context, item)),
+            others=[action("Import Raster...", context, lambda: open_import_raster_dialog(model, item))],
+        )
 
     def double_clicked(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> None:
         if not isinstance(model, Dataset):

@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING
 
 from qgis.PyQt.QtWidgets import QAction
 
-from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, refresh_action
+from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, ordered_actions, refresh_action
 from planscape.gui.commands.workspace import update_workspace
 from planscape.models.domain import DatasetCollection, Model, StyleCollection, UserCollection, Workspace
 
@@ -32,7 +32,7 @@ class WorkspaceBehavior(DockNodeBehavior):
 
         edit_action = QAction("Edit", context.tree)
         edit_action.triggered.connect(lambda: update_workspace(model, context, item))
-        return [edit_action, refresh_action(context, item)]
+        return ordered_actions(context, refresh_action(context, item), edit=edit_action)
 
     def double_clicked(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> None:
         if not isinstance(model, Workspace):
