@@ -9,6 +9,8 @@ class NodeKind(StrEnum):
     WORKSPACE = "workspace"
     DATASET_COLLECTION = "dataset_collection"
     DATASET = "dataset"
+    MODULE_COLLECTION = "module_collection"
+    MODULE = "module"
     STYLE_COLLECTION = "style_collection"
     STYLE = "style"
     DATALAYER_COLLECTION = "datalayer_collection"

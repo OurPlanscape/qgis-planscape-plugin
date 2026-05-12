@@ -475,7 +475,7 @@ def test_planscape_dock_dataset_expands_to_data_layers_collection(qgis_app, monk
     monkeypatch.setattr("planscape.gui.planscape_dock.auth.get_environment", lambda: "catalog")
 
     dock = PlanscapeDockWidget()
-    dataset_model = Dataset(id=20, name="Base Data")
+    dataset_model = Dataset(id=20, name="Base Data", modules=["map", "forsys"])
 
     def fake_list_workspace_datasets_request(base_url, authcfg_id, workspace_id):
         del base_url, authcfg_id, workspace_id
@@ -498,10 +498,14 @@ def test_planscape_dock_dataset_expands_to_data_layers_collection(qgis_app, monk
 
     dock._load_item_children(dataset)
 
-    assert [dataset.child(index).text(0) for index in range(dataset.childCount())] == ["Data Layers"]
+    assert [dataset.child(index).text(0) for index in range(dataset.childCount())] == ["Modules", "Data Layers"]
     assert [dataset.child(index).data(0, NODE_KIND_ROLE) for index in range(dataset.childCount())] == [
-        NodeKind.DATALAYER_COLLECTION
+        NodeKind.MODULE_COLLECTION,
+        NodeKind.DATALAYER_COLLECTION,
     ]
+    modules = dataset.child(0)
+    dock._load_item_children(modules)
+    assert [modules.child(index).text(0) for index in range(modules.childCount())] == ["map", "forsys"]
 
 
 def test_planscape_dock_dataset_browse_builds_nested_datalayer_tree(qgis_app, monkeypatch):
@@ -561,7 +565,7 @@ def test_planscape_dock_dataset_browse_builds_nested_datalayer_tree(qgis_app, mo
     dataset = datasets.child(0)
 
     dock._load_item_children(dataset)
-    datalayers = dataset.child(0)
+    datalayers = dataset.child(1)
     dock._load_item_children(datalayers)
     category_b = datalayers.child(1)
     dock._load_item_children(category_b)
@@ -597,7 +601,7 @@ def test_planscape_dock_dataset_browse_error_returns_empty_data_layers(qgis_app,
     dock.tree.addTopLevelItem(item)
 
     dock._load_item_children(item)
-    datalayers = item.child(0)
+    datalayers = item.child(1)
     dock._load_item_children(datalayers)
 
     assert datalayers.text(0) == "Data Layers"

@@ -36,6 +36,10 @@ class WorkspaceAPIError(PlanscapeAPIError):
     pass
 
 
+class StyleAPIError(PlanscapeAPIError):
+    pass
+
+
 class DatasetPayloadError(PlanscapePayloadError):
     pass
 
@@ -45,4 +49,8 @@ class DataLayerPayloadError(PlanscapePayloadError):
 
 
 class WorkspacePayloadError(PlanscapePayloadError):
+    pass
+
+
+class StylePayloadError(PlanscapePayloadError):
     pass

@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 @dataclass
 class Dataset(Model):
     visibility: WorkspaceVisibility = WorkspaceVisibility.PRIVATE
-    modules: str = ""
+    modules: list[str] = field(default_factory=list)
     datalayers: list[DataLayer] = field(default_factory=list)
     categories: list[Category] = field(default_factory=list)
     kind: NodeKind = field(default=NodeKind.DATASET, init=False)

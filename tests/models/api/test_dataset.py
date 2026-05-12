@@ -55,14 +55,14 @@ def test_dataset_response_to_domain_preserves_visibility():
         id=20,
         name="Base Data",
         visibility=WorkspaceVisibility.PUBLIC,
-        modules="forsys,map",
+        modules=["forsys", "map"],
     )
 
 
 def test_dataset_response_uses_empty_modules_when_missing():
     response = DatasetResponse.from_dict({"id": 20, "name": "Base Data", "visibility": "PUBLIC"})
 
-    assert response.to_domain().modules == ""
+    assert response.to_domain().modules == []
 
 
 def test_browse_dataset_response_parses_raw_list():

@@ -110,6 +110,7 @@ class WorkspaceDatasetResponse:
     id: int
     name: str
     visibility: WorkspaceVisibility = WorkspaceVisibility.PRIVATE
+    modules: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> WorkspaceDatasetResponse:
@@ -121,10 +122,11 @@ class WorkspaceDatasetResponse:
             id=_required_int(payload.get("id"), "id"),
             name=_required_string(payload.get("name"), "name"),
             visibility=_visibility(payload.get("visibility", WorkspaceVisibility.PRIVATE.value)),
+            modules=_modules_to_list(payload.get("modules")),
         )
 
     def to_domain(self) -> Dataset:
-        return Dataset(id=self.id, name=self.name, visibility=self.visibility)
+        return Dataset(id=self.id, name=self.name, visibility=self.visibility, modules=self.modules)
 
 
 @dataclass(frozen=True)
@@ -225,6 +227,17 @@ def _required_string(value: Any, field_name: str) -> str:
     if isinstance(value, str):
         return value
     message = f"{field_name} must be a string."
+    raise WorkspacePayloadError(message)
+
+
+def _modules_to_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [module.strip() for module in value.split(",") if module.strip()]
+    if isinstance(value, list) and all(isinstance(item, str) for item in value):
+        return list(value)
+    message = "modules must be a list of strings, string, or null."
     raise WorkspacePayloadError(message)
 
 

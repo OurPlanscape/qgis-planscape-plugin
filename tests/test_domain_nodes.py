@@ -6,6 +6,8 @@ from planscape.models.domain import (
     Dataset,
     DatasetCollection,
     LoginNode,
+    Module,
+    ModuleCollection,
     NodeKind,
     Server,
     Style,
@@ -23,6 +25,8 @@ def test_domain_nodes_have_expected_kinds():
     assert Workspace().kind == NodeKind.WORKSPACE
     assert DatasetCollection().kind == NodeKind.DATASET_COLLECTION
     assert Dataset().kind == NodeKind.DATASET
+    assert ModuleCollection().kind == NodeKind.MODULE_COLLECTION
+    assert Module().kind == NodeKind.MODULE
     assert StyleCollection().kind == NodeKind.STYLE_COLLECTION
     assert Style().kind == NodeKind.STYLE
     assert DataLayerCollection().kind == NodeKind.DATALAYER_COLLECTION
@@ -43,6 +47,8 @@ def test_domain_nodes_provide_default_node_labels():
     assert StyleCollection(workspace_id=10, count=2).node_label() == "Styles (2)"
     assert UserCollection(workspace_id=10, count=5).node_label() == "Users (5)"
     assert DatasetCollection(workspace_id=10).node_key() == "dataset_collection:workspace:10"
+    assert ModuleCollection(dataset_id=20).node_label() == "Modules"
+    assert ModuleCollection(dataset_id=20).node_key() == "module_collection:dataset:20"
     assert DataLayerCollection(dataset_id=20).node_key() == "datalayer_collection:dataset:20"
 
 
@@ -57,6 +63,7 @@ def test_child_collections_default_to_empty_lists():
     assert workspace.users == []
     assert dataset.datalayers == []
     assert dataset.categories == []
+    assert dataset.modules == []
 
 
 def test_child_collections_are_not_shared_between_instances():

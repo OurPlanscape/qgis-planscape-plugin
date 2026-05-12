@@ -9,6 +9,8 @@ from planscape.models.domain.dataset import Dataset
 from planscape.models.domain.dataset_collection import DatasetCollection
 from planscape.models.domain.login_node import LoginNode
 from planscape.models.domain.model import Model
+from planscape.models.domain.module import Module
+from planscape.models.domain.module_collection import ModuleCollection
 from planscape.models.domain.node_kind import NodeKind
 from planscape.models.domain.server import Server
 from planscape.models.domain.style import Style
@@ -27,6 +29,8 @@ __all__ = [
     "DatasetCollection",
     "LoginNode",
     "Model",
+    "Module",
+    "ModuleCollection",
     "NodeKind",
     "Server",
     "Style",

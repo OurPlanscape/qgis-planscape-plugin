@@ -24,7 +24,7 @@ class CreateDatasetRequest:
             "workspace_id": self.workspace_id,
             "name": self.name,
             "visibility": self.visibility.value,
-            "modules": _modules_to_list(self.modules),
+            "modules": _modules_from_string(self.modules),
         }
         if self.organization is not None:
             payload["organization"] = self.organization
@@ -52,7 +52,7 @@ class DatasetResponse:
     name: str
     visibility: WorkspaceVisibility = WorkspaceVisibility.PRIVATE
     id: int | None = None
-    modules: str = ""
+    modules: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> DatasetResponse:
@@ -60,7 +60,7 @@ class DatasetResponse:
             id=_optional_int(payload.get("id"), "id"),
             name=_required_string(payload.get("name"), "name"),
             visibility=_visibility(payload.get("visibility", WorkspaceVisibility.PRIVATE.value)),
-            modules=_modules_to_string(payload.get("modules")),
+            modules=_modules_to_list(payload.get("modules")),
         )
 
     def to_domain(self) -> Dataset:
@@ -226,14 +226,16 @@ def _optional_list(value: Any, field_name: str) -> list[Any]:
     raise DatasetPayloadError(message)
 
 
-def _modules_to_list(value: str) -> list[str]:
+def _modules_from_string(value: str) -> list[str]:
     return [module.strip() for module in value.split(",") if module.strip()]
 
 
-def _modules_to_string(value: Any) -> str:
+def _modules_to_list(value: Any) -> list[str]:
     if value is None:
-        return ""
+        return []
+    if isinstance(value, str):
+        return [module.strip() for module in value.split(",") if module.strip()]
     if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
-        message = "modules must be a list of strings or null."
+        message = "modules must be a list of strings, string, or null."
         raise DatasetPayloadError(message)
-    return ",".join(value)
+    return list(value)
