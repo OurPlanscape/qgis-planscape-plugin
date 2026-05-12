@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from planscape import auth
 from planscape.api.exceptions import WorkspaceAPIError
 from planscape.api.workspace import list_workspace_datasets_request
-from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, refresh_action
+from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, ordered_actions, refresh_action
 from planscape.gui.commands.dataset import create_dataset
 from planscape.models.domain import DatasetCollection, Model
 
@@ -35,7 +35,8 @@ class DatasetCollectionBehavior(DockNodeBehavior):
     def actions(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> list[QAction]:
         if not isinstance(model, DatasetCollection) or model.workspace_id is None:
             return [refresh_action(context, item)]
-        return [
-            action("New Dataset", context, lambda: create_dataset(context, item, model.workspace_id)),  # type: ignore
+        return ordered_actions(
+            context,
             refresh_action(context, item),
-        ]
+            others=[action("New Dataset", context, lambda: create_dataset(context, item, model.workspace_id))],  # type: ignore
+        )

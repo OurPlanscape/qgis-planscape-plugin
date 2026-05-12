@@ -83,7 +83,7 @@ def _node_icon(kind: NodeKind) -> QIcon:
         NodeKind.SERVER: resources_path("icons", "planscape", "planscape-color.png"),
         NodeKind.DATASET_COLLECTION: resources_path("icons", "planscape", "datasets.png"),
         NodeKind.DATALAYER_COLLECTION: resources_path("icons", "planscape", "datalayers.png"),
-        NodeKind.MODULE_COLLECTION: resources_path("icons", "planscape", "planscape-bw.png"),
+        NodeKind.MODULE_COLLECTION: resources_path("icons", "planscape", "modules.png"),
         NodeKind.STYLE_COLLECTION: resources_path("icons", "planscape", "styles.png"),
         NodeKind.USER_COLLECTION: resources_path("icons", "planscape", "users.png"),
     }

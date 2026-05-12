@@ -32,7 +32,7 @@ from planscape.qgis_plugin_tools.tools.network import ENCODING
 
 logger = logging.getLogger(__name__)
 PLANSCAPE_RASTER_CRS = "EPSG:3857"
-KNOWN_DATASET_MODULES = ("map", "forsys", "impacts", "climate_foresight")
+DATASET_CONTROLLED_MODULES = ("map", "forsys", "prioritize_sub_units")
 
 
 @dataclass(frozen=True)
@@ -42,11 +42,9 @@ class RasterImportRequest:
     layer: QgsRasterLayer
     name: str
     dataset: int
-    workspace: int
     organization: int
     category: int | None = None
     metadata: dict[str, Any] | None = None
-    dataset_modules: list[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -64,7 +62,7 @@ def import_raster_to_planscape(
 ) -> RasterImportResult:
     feedback = feedback or QgsProcessingFeedback()
     input_file = _local_source_path(request.layer)
-    metadata = metadata_with_modules(request.metadata or {}, request.dataset_modules or [])
+    metadata = request.metadata or {}
     style_data = planscape_style_from_raster_layer(request.layer)
 
     feedback.pushInfo("Preparing raster for Planscape.")
@@ -373,23 +371,12 @@ def parse_metadata(value: str) -> dict[str, Any]:
     return metadata
 
 
-def metadata_with_modules(metadata: dict[str, Any], dataset_modules: list[str]) -> dict[str, Any]:
+def module_metadata(dataset_modules: list[str]) -> dict[str, Any]:
     enabled_modules = {module.strip() for module in dataset_modules if module.strip()}
-    module_names = (*KNOWN_DATASET_MODULES, *sorted(enabled_modules - set(KNOWN_DATASET_MODULES)))
-    modules = metadata.get("modules")
-    if not isinstance(modules, dict):
-        modules = {}
-
-    updated_metadata = dict(metadata)
-    updated_modules = dict(modules)
-    for module in module_names:
-        existing = updated_modules.get(module)
-        module_metadata = dict(existing) if isinstance(existing, dict) else {}
-        module_metadata["enabled"] = module in enabled_modules
-        updated_modules[module] = module_metadata
-
-    updated_metadata["modules"] = updated_modules
-    return updated_metadata
+    return {module: {"enabled": module in enabled_modules} for module in DATASET_CONTROLLED_MODULES} | {
+        "impacts": {"enabled": False},
+        "climate_foresight": {"enabled": False},
+    }
 
 
 def _local_source_path(layer: QgsRasterLayer) -> str:

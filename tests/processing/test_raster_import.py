@@ -75,9 +75,10 @@ def test_import_raster_uploads_before_marking_ready_and_then_creates_style(monke
             layer=FakeLayer(),
             name="Smoke",
             dataset=10,
-            workspace=5,
             organization=3,
-            dataset_modules=["map", "climate_foresight"],
+            metadata={
+                "modules": raster_import.module_metadata(["map", "climate_foresight", "prioritize_sub_units"]),
+            },
         ),
         context=None,
         feedback=FakeFeedback(),
@@ -89,8 +90,9 @@ def test_import_raster_uploads_before_marking_ready_and_then_creates_style(monke
         "modules": {
             "map": {"enabled": True},
             "forsys": {"enabled": False},
+            "prioritize_sub_units": {"enabled": True},
             "impacts": {"enabled": False},
-            "climate_foresight": {"enabled": True},
+            "climate_foresight": {"enabled": False},
         }
     }
     assert calls[1] == ("upload", "https://storage.example/upload", "/tmp/prepared.tif")
@@ -143,7 +145,6 @@ def test_import_raster_requires_upload_url_before_marking_ready(monkeypatch):
                 layer=FakeLayer(),
                 name="Smoke",
                 dataset=10,
-                workspace=5,
                 organization=3,
             ),
             context=None,
@@ -153,20 +154,73 @@ def test_import_raster_requires_upload_url_before_marking_ready(monkeypatch):
     assert ready_called["value"] is False
 
 
-def test_metadata_with_modules_preserves_existing_module_metadata():
-    metadata = {"modules": {"impacts": {"variable": "fire"}}, "source": "qgis"}
-
-    result = raster_import.metadata_with_modules(metadata, ["map", "impacts"])
+def test_module_metadata_builds_fixed_shape_from_dataset_modules():
+    result = raster_import.module_metadata(["map", "forsys", "impacts", "climate_foresight"])
 
     assert result == {
-        "source": "qgis",
-        "modules": {
-            "map": {"enabled": True},
-            "forsys": {"enabled": False},
-            "impacts": {"variable": "fire", "enabled": True},
-            "climate_foresight": {"enabled": False},
-        },
+        "map": {"enabled": True},
+        "forsys": {"enabled": True},
+        "prioritize_sub_units": {"enabled": False},
+        "impacts": {"enabled": False},
+        "climate_foresight": {"enabled": False},
     }
+
+
+def test_import_raster_uses_user_edited_metadata(monkeypatch):
+    metadata = {"modules": {"impacts": {"variable": "fire", "enabled": True}}, "source": "qgis"}
+
+    def fake_local_source_path(layer):
+        del layer
+        return "/tmp/input.tif"
+
+    def fake_style(layer):
+        del layer
+
+    def fake_prepare_raster_for_planscape(input_file, layer, context, feedback):
+        del input_file, layer, context, feedback
+        return "/tmp/prepared.tif"
+
+    def fake_info_raster(input_file):
+        del input_file
+        return {"crs": "EPSG:3857"}
+
+    def fake_create_datalayer_request(base_url, authcfg_id, request):
+        del base_url, authcfg_id
+        assert request.metadata == metadata
+        return CreateDataLayerResponse(
+            datalayer=DataLayer(id=20, name="Smoke"),
+            upload_to=DataLayerUploadTarget(url="https://storage.example/upload"),
+        )
+
+    monkeypatch.setattr(raster_import, "_local_source_path", fake_local_source_path)
+    monkeypatch.setattr(raster_import, "planscape_style_from_raster_layer", fake_style)
+    monkeypatch.setattr(raster_import, "prepare_raster_for_planscape", fake_prepare_raster_for_planscape)
+    monkeypatch.setattr(raster_import, "info_raster", fake_info_raster)
+    monkeypatch.setattr(raster_import, "create_datalayer_request", fake_create_datalayer_request)
+
+    def fake_upload_file(url, input_file):
+        del url, input_file
+
+    def fake_update_status(*args):
+        del args
+        return {}
+
+    monkeypatch.setattr(raster_import, "upload_file", fake_upload_file)
+    monkeypatch.setattr(raster_import, "update_datalayer_status_request", fake_update_status)
+
+    raster_import.import_raster_to_planscape(
+        RasterImportRequest(
+            base_url="https://planscape.example",
+            authcfg_id="authcfg-id",
+            layer=FakeLayer(),
+            name="Smoke",
+            dataset=10,
+            organization=3,
+            metadata=metadata,
+        ),
+        context=None,
+        feedback=FakeFeedback(),
+    )
 
 
 def test_import_raster_does_not_fail_when_style_response_is_invalid(monkeypatch):
@@ -221,7 +275,6 @@ def test_import_raster_does_not_fail_when_style_response_is_invalid(monkeypatch)
             layer=FakeLayer(),
             name="Smoke",
             dataset=10,
-            workspace=5,
             organization=3,
         ),
         context=None,

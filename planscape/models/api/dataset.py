@@ -17,14 +17,14 @@ class CreateDatasetRequest:
     visibility: WorkspaceVisibility = WorkspaceVisibility.PRIVATE
     organization: int | None = None
     version: str | None = None
-    modules: str = "forsys,map,prioritize_sub_units"
+    modules: list[str] = field(default_factory=lambda: ["map", "forsys", "prioritize_sub_units"])
 
     def to_dict(self) -> dict[str, object]:
         payload: dict[str, object] = {
             "workspace_id": self.workspace_id,
             "name": self.name,
             "visibility": self.visibility.value,
-            "modules": _modules_from_string(self.modules),
+            "modules": list(self.modules),
         }
         if self.organization is not None:
             payload["organization"] = self.organization
@@ -37,13 +37,16 @@ class CreateDatasetRequest:
 class UpdateDatasetRequest:
     name: str | None = None
     visibility: WorkspaceVisibility | None = None
+    modules: list[str] | None = None
 
-    def to_dict(self) -> dict[str, str]:
-        payload = {}
+    def to_dict(self) -> dict[str, object]:
+        payload: dict[str, object] = {}
         if self.name is not None:
             payload["name"] = self.name
         if self.visibility is not None:
             payload["visibility"] = self.visibility.value
+        if self.modules is not None:
+            payload["modules"] = list(self.modules)
         return payload
 
 
@@ -224,10 +227,6 @@ def _optional_list(value: Any, field_name: str) -> list[Any]:
         return list(value)
     message = f"{field_name} must be a list or null."
     raise DatasetPayloadError(message)
-
-
-def _modules_from_string(value: str) -> list[str]:
-    return [module.strip() for module in value.split(",") if module.strip()]
 
 
 def _modules_to_list(value: Any) -> list[str]:

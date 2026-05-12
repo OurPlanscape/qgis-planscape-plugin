@@ -54,6 +54,7 @@ def update_dataset(dataset: Dataset, context: DockContext, item: QTreeWidgetItem
         dataset_id=str(dataset.id),
         name=dataset.name,
         visibility=dataset.visibility.value.lower(),
+        modules=dataset.modules,
     )
     if not dialog.exec():
         return
@@ -61,6 +62,7 @@ def update_dataset(dataset: Dataset, context: DockContext, item: QTreeWidgetItem
     request = UpdateDatasetRequest(
         name=dialog.dataset_name(),
         visibility=WorkspaceVisibility(dialog.dataset_visibility().upper()),
+        modules=dialog.dataset_modules(),
     )
     try:
         updated_dataset = update_dataset_request(

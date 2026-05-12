@@ -20,11 +20,9 @@ from planscape.processing.raster_import import RasterImportRequest, import_raste
 INPUT = "INPUT"
 NAME = "NAME"
 DATASET = "DATASET"
-WORKSPACE = "WORKSPACE"
 ORGANIZATION = "ORGANIZATION"
 CATEGORY = "CATEGORY"
 METADATA = "METADATA"
-DATASET_MODULES = "DATASET_MODULES"
 DATALAYER_ID = "DATALAYER_ID"
 DATALAYER_NAME = "DATALAYER_NAME"
 STYLE_ID = "STYLE_ID"
@@ -56,9 +54,6 @@ class ImportRasterAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterNumber(DATASET, "Dataset ID", QgsProcessingParameterNumber.Type.Integer)
         )
-        workspace = QgsProcessingParameterNumber(WORKSPACE, "Workspace ID", QgsProcessingParameterNumber.Type.Integer)
-        workspace.setFlags(workspace.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(workspace)
         self.addParameter(
             QgsProcessingParameterNumber(ORGANIZATION, "Organization ID", QgsProcessingParameterNumber.Type.Integer)
         )
@@ -73,9 +68,6 @@ class ImportRasterAlgorithm(QgsProcessingAlgorithm):
         metadata = QgsProcessingParameterString(METADATA, "Metadata JSON", optional=True, multiLine=True)
         metadata.setFlags(metadata.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
         self.addParameter(metadata)
-        dataset_modules = QgsProcessingParameterString(DATASET_MODULES, "Dataset modules", optional=True)
-        dataset_modules.setFlags(dataset_modules.flags() | QgsProcessingParameterDefinition.FlagAdvanced)
-        self.addParameter(dataset_modules)
 
         self.addOutput(QgsProcessingOutputNumber(DATALAYER_ID, "Datalayer ID"))
         self.addOutput(QgsProcessingOutputString(DATALAYER_NAME, "Datalayer name"))
@@ -104,11 +96,9 @@ class ImportRasterAlgorithm(QgsProcessingAlgorithm):
                 layer=layer,
                 name=self.parameterAsString(parameters, NAME, context).strip(),
                 dataset=self.parameterAsInt(parameters, DATASET, context),
-                workspace=self.parameterAsInt(parameters, WORKSPACE, context),
                 organization=self.parameterAsInt(parameters, ORGANIZATION, context),
                 category=category,
                 metadata=parse_metadata(self.parameterAsString(parameters, METADATA, context)),
-                dataset_modules=_parse_modules(self.parameterAsString(parameters, DATASET_MODULES, context)),
             ),
             context,
             feedback,
@@ -126,7 +116,3 @@ def _optional_int_parameter(parameters: dict[str, Any], name: str) -> int | None
     if value in (None, ""):
         return None
     return int(value)  # type: ignore[arg-type]
-
-
-def _parse_modules(value: str) -> list[str]:
-    return [module.strip() for module in value.split(",") if module.strip()]

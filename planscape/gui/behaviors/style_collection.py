@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 from planscape import auth
 from planscape.api.exceptions import WorkspaceAPIError
 from planscape.api.workspace import list_workspace_styles_request
-from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, noop, refresh_action
+from planscape.gui.behaviors.base import DockContext, DockNodeBehavior, action, noop, ordered_actions, refresh_action
 from planscape.models.domain import Model, StyleCollection
 
 if TYPE_CHECKING:
@@ -32,4 +32,4 @@ class StyleCollectionBehavior(DockNodeBehavior):
             return []
 
     def actions(self, model: Model, context: DockContext, item: QTreeWidgetItem) -> list[QAction]:  # noqa: ARG002
-        return [action("New Style", context, noop), refresh_action(context, item)]
+        return ordered_actions(context, refresh_action(context, item), others=[action("New Style", context, noop)])

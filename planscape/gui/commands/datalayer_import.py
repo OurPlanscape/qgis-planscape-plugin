@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import json
 from typing import TYPE_CHECKING
 
 from qgis.core import QgsRasterLayer
 from qgis.utils import iface
 
-from planscape.models.domain import DatasetCollection
-from planscape.processing.import_raster import DATASET, DATASET_MODULES, INPUT, WORKSPACE
+from planscape.processing.import_raster import DATASET, INPUT, METADATA
+from planscape.processing.raster_import import module_metadata
 
 if TYPE_CHECKING:
     from qgis.PyQt.QtWidgets import QTreeWidgetItem
@@ -15,30 +16,18 @@ if TYPE_CHECKING:
 
 
 def open_import_raster_dialog(dataset: Dataset, item: QTreeWidgetItem) -> None:
+    del item
     if dataset.id is None:
         return
 
     import processing
 
-    parameters: dict[str, object] = {DATASET: int(dataset.id), DATASET_MODULES: ",".join(dataset.modules)}
-    workspace_id = _workspace_id(item)
-    if workspace_id is not None:
-        parameters[WORKSPACE] = int(workspace_id)
-
+    parameters: dict[str, object] = {
+        DATASET: int(dataset.id),
+        METADATA: json.dumps({"modules": module_metadata(dataset.modules)}, indent=2),
+    }
     active_layer = iface.activeLayer()
     if isinstance(active_layer, QgsRasterLayer):
         parameters[INPUT] = active_layer
 
     processing.execAlgorithmDialog("planscape:import_raster", parameters)
-
-
-def _workspace_id(item: QTreeWidgetItem) -> int | str | None:
-    from planscape.gui.dock_nodes import item_node
-
-    current = item.parent()
-    while current is not None:
-        node = item_node(current)
-        if isinstance(node, DatasetCollection):
-            return node.workspace_id
-        current = current.parent()
-    return None

@@ -17,7 +17,7 @@ def test_create_dataset_request_serializes_payload():
         "workspace_id": 7,
         "name": "Base Data",
         "visibility": "PUBLIC",
-        "modules": ["forsys", "map", "prioritize_sub_units"],
+        "modules": ["map", "forsys", "prioritize_sub_units"],
     }
 
 
@@ -27,7 +27,7 @@ def test_create_dataset_request_serializes_optional_payload():
         name="Base Data",
         organization=3,
         version="2026.1",
-        modules="forsys, map",
+        modules=["forsys", "map"],
     )
 
     assert request.to_dict() == {
@@ -44,6 +44,12 @@ def test_update_dataset_request_omits_none_fields():
     request = UpdateDatasetRequest(name="Updated Data")
 
     assert request.to_dict() == {"name": "Updated Data"}
+
+
+def test_update_dataset_request_serializes_modules():
+    request = UpdateDatasetRequest(name="Updated Data", modules=["map", "forsys"])
+
+    assert request.to_dict() == {"name": "Updated Data", "modules": ["map", "forsys"]}
 
 
 def test_dataset_response_to_domain_preserves_visibility():

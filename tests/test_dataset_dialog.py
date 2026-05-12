@@ -17,7 +17,7 @@ def test_dataset_dialog_defaults(qgis_app):
     assert dialog.visibility_combo.currentText() == "private"
     assert dialog.dataset_organization() is None
     assert dialog.dataset_version() is None
-    assert dialog.dataset_modules() == "forsys,map,prioritize_sub_units"
+    assert dialog.dataset_modules() == ["map", "forsys", "prioritize_sub_units"]
     assert dialog.save_button.text() == "Save"
     assert dialog.focusWidget() == dialog.name_input
 
@@ -31,7 +31,7 @@ def test_dataset_dialog_supports_initial_values(qgis_app):
         visibility="public",
         organization=3,
         version="2026.1",
-        modules="forsys,map",
+        modules=["forsys", "map"],
     )
 
     assert dialog.dataset_id() == "dataset-123"
@@ -39,4 +39,4 @@ def test_dataset_dialog_supports_initial_values(qgis_app):
     assert dialog.dataset_visibility() == "public"
     assert dialog.dataset_organization() == 3
     assert dialog.dataset_version() == "2026.1"
-    assert dialog.dataset_modules() == "forsys,map"
+    assert dialog.dataset_modules() == ["map", "forsys"]
