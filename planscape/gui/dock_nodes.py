@@ -1,13 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import Path
 
 from qgis.PyQt.QtCore import Qt
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QApplication, QStyle, QTreeWidgetItem
 
 from planscape.gui.behaviors import behavior_for
-from planscape.models.domain import LoginNode, Model, NodeKind, Server, Workspace
+from planscape.models.domain import DataLayer, LoginNode, Model, Module, NodeKind, Server, Workspace
 from planscape.qgis_plugin_tools.tools.resources import resources_path
 
 NODE_OBJECT_ROLE = Qt.ItemDataRole.UserRole
@@ -29,7 +30,7 @@ class DockNode:
         item = QTreeWidgetItem([self.label()])
         item.setData(0, NODE_OBJECT_ROLE, self.model)
         item.setData(0, NODE_KIND_ROLE, self.node_kind())
-        icon = _node_icon(self.node_kind())
+        icon = _node_icon(self.model)
         if not icon.isNull():
             item.setIcon(0, icon)
         return item
@@ -77,7 +78,13 @@ def _loading_icon() -> QIcon:
     return app.style().standardIcon(QStyle.StandardPixmap.SP_BrowserReload)
 
 
-def _node_icon(kind: NodeKind) -> QIcon:
+def _node_icon(model: Model) -> QIcon:
+    if isinstance(model, Module):
+        return _planscape_icon(model.name)
+    if isinstance(model, DataLayer):
+        return _datalayer_icon(model)
+
+    kind = model.kind
     icon_paths = {
         NodeKind.LOGIN: resources_path("icons", "planscape", "planscape-bw.png"),
         NodeKind.SERVER: resources_path("icons", "planscape", "planscape-color.png"),
@@ -94,6 +101,24 @@ def _node_icon(kind: NodeKind) -> QIcon:
         if app is not None:
             return app.style().standardIcon(QStyle.StandardPixmap.SP_DirIcon)
     return QIcon()
+
+
+def _datalayer_icon(datalayer: DataLayer) -> QIcon:
+    datalayer_type = datalayer.type.upper() if datalayer.type else ""
+    if datalayer_type == "RASTER":
+        return _planscape_icon("datalayer_raster")
+    if datalayer_type == "VECTOR":
+        return _planscape_icon("datalayer_vector")
+    return QIcon()
+
+
+def _planscape_icon(name: str) -> QIcon:
+    if not name or Path(name).name != name:
+        return QIcon()
+    path = resources_path("icons", "planscape", f"{name}.png")
+    if not Path(path).is_file():
+        return QIcon()
+    return QIcon(path)
 
 
 def item_kind(item: QTreeWidgetItem) -> NodeKind | None:

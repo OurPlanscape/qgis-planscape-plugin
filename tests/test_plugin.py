@@ -12,6 +12,7 @@ from planscape.models.domain import (
     Dataset,
     DatasetCollection,
     LoginNode,
+    Module,
     NodeKind,
     Server,
     Style,
@@ -443,7 +444,7 @@ def test_collection_model_items_show_distinguishing_icons(qgis_app):
     assert all(not item.icon(0).isNull() for item in items)
 
 
-def test_resource_model_items_do_not_show_distinguishing_icons(qgis_app):
+def test_resource_model_items_without_specific_icons_do_not_show_distinguishing_icons(qgis_app):
     assert qgis_app is not None
 
     items = [
@@ -453,6 +454,19 @@ def test_resource_model_items_do_not_show_distinguishing_icons(qgis_app):
     ]
 
     assert all(item.icon(0).isNull() for item in items)
+
+
+def test_module_and_typed_datalayer_model_items_show_specific_icons(qgis_app):
+    assert qgis_app is not None
+
+    items = [
+        model_item(Module(name="map")),
+        model_item(Module(name="forsys")),
+        model_item(DataLayer(id=30, name="Raster", type="RASTER")),
+        model_item(DataLayer(id=31, name="Vector", type="VECTOR")),
+    ]
+
+    assert all(not item.icon(0).isNull() for item in items)
 
 
 def test_planscape_dock_repaints_loading_item_before_loading_children(qgis_app, monkeypatch):
