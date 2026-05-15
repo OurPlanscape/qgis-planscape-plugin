@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from planscape.api.exceptions import WorkspacePayloadError
-from planscape.models.domain.dataset import Dataset
+from planscape.models.domain.dataset import Dataset, DatasetPreferredDisplayType, DatasetSelectionType
 from planscape.models.domain.style import Style
 from planscape.models.domain.user import User
 from planscape.models.domain.workspace import Workspace, WorkspaceVisibility
@@ -110,6 +110,8 @@ class WorkspaceDatasetResponse:
     id: int
     name: str
     visibility: WorkspaceVisibility = WorkspaceVisibility.PRIVATE
+    preferred_display_type: DatasetPreferredDisplayType = DatasetPreferredDisplayType.MAIN_DATALAYERS
+    selection_type: DatasetSelectionType = DatasetSelectionType.SINGLE
     modules: list[str] = field(default_factory=list)
 
     @classmethod
@@ -122,11 +124,22 @@ class WorkspaceDatasetResponse:
             id=_required_int(payload.get("id"), "id"),
             name=_required_string(payload.get("name"), "name"),
             visibility=_visibility(payload.get("visibility", WorkspaceVisibility.PRIVATE.value)),
+            preferred_display_type=_preferred_display_type(
+                payload.get("preferred_display_type", DatasetPreferredDisplayType.MAIN_DATALAYERS.value)
+            ),
+            selection_type=_selection_type(payload.get("selection_type", DatasetSelectionType.SINGLE.value)),
             modules=_modules_to_list(payload.get("modules")),
         )
 
     def to_domain(self) -> Dataset:
-        return Dataset(id=self.id, name=self.name, visibility=self.visibility, modules=self.modules)
+        return Dataset(
+            id=self.id,
+            name=self.name,
+            visibility=self.visibility,
+            preferred_display_type=self.preferred_display_type,
+            selection_type=self.selection_type,
+            modules=self.modules,
+        )
 
 
 @dataclass(frozen=True)
@@ -286,4 +299,30 @@ def _visibility(value: Any) -> WorkspaceVisibility:
             message = f"Unsupported workspace visibility: {value}"
             raise WorkspacePayloadError(message) from exc
     message = "visibility must be a string."
+    raise WorkspacePayloadError(message)
+
+
+def _preferred_display_type(value: Any) -> DatasetPreferredDisplayType:
+    if isinstance(value, DatasetPreferredDisplayType):
+        return value
+    if isinstance(value, str):
+        try:
+            return DatasetPreferredDisplayType(value)
+        except ValueError as exc:
+            message = f"Unsupported dataset preferred_display_type: {value}"
+            raise WorkspacePayloadError(message) from exc
+    message = "preferred_display_type must be a string."
+    raise WorkspacePayloadError(message)
+
+
+def _selection_type(value: Any) -> DatasetSelectionType:
+    if isinstance(value, DatasetSelectionType):
+        return value
+    if isinstance(value, str):
+        try:
+            return DatasetSelectionType(value)
+        except ValueError as exc:
+            message = f"Unsupported dataset selection_type: {value}"
+            raise WorkspacePayloadError(message) from exc
+    message = "selection_type must be a string."
     raise WorkspacePayloadError(message)

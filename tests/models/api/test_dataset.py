@@ -7,7 +7,13 @@ from planscape.models.api.dataset import (
     DatasetResponse,
     UpdateDatasetRequest,
 )
-from planscape.models.domain import DataLayer, Dataset, WorkspaceVisibility
+from planscape.models.domain import (
+    DataLayer,
+    Dataset,
+    DatasetPreferredDisplayType,
+    DatasetSelectionType,
+    WorkspaceVisibility,
+)
 
 
 def test_create_dataset_request_serializes_payload():
@@ -17,6 +23,8 @@ def test_create_dataset_request_serializes_payload():
         "workspace_id": 7,
         "name": "Base Data",
         "visibility": "PUBLIC",
+        "preferred_display_type": "MAIN_DATALAYERS",
+        "selection_type": "SINGLE",
         "modules": ["map", "forsys", "prioritize_sub_units"],
     }
 
@@ -34,6 +42,8 @@ def test_create_dataset_request_serializes_optional_payload():
         "workspace_id": 7,
         "name": "Base Data",
         "visibility": "PRIVATE",
+        "preferred_display_type": "MAIN_DATALAYERS",
+        "selection_type": "SINGLE",
         "modules": ["forsys", "map"],
         "organization": 3,
         "version": "2026.1",
@@ -47,20 +57,39 @@ def test_update_dataset_request_omits_none_fields():
 
 
 def test_update_dataset_request_serializes_modules():
-    request = UpdateDatasetRequest(name="Updated Data", modules=["map", "forsys"])
+    request = UpdateDatasetRequest(
+        name="Updated Data",
+        preferred_display_type=DatasetPreferredDisplayType.BASE_DATALAYERS,
+        selection_type=DatasetSelectionType.MULTIPLE,
+        modules=["map", "forsys"],
+    )
 
-    assert request.to_dict() == {"name": "Updated Data", "modules": ["map", "forsys"]}
+    assert request.to_dict() == {
+        "name": "Updated Data",
+        "preferred_display_type": "BASE_DATALAYERS",
+        "selection_type": "MULTIPLE",
+        "modules": ["map", "forsys"],
+    }
 
 
 def test_dataset_response_to_domain_preserves_visibility():
     response = DatasetResponse.from_dict(
-        {"id": 20, "name": "Base Data", "visibility": "PUBLIC", "modules": ["forsys", "map"]}
+        {
+            "id": 20,
+            "name": "Base Data",
+            "visibility": "PUBLIC",
+            "preferred_display_type": "BASE_DATALAYERS",
+            "selection_type": "MULTIPLE",
+            "modules": ["forsys", "map"],
+        }
     )
 
     assert response.to_domain() == Dataset(
         id=20,
         name="Base Data",
         visibility=WorkspaceVisibility.PUBLIC,
+        preferred_display_type=DatasetPreferredDisplayType.BASE_DATALAYERS,
+        selection_type=DatasetSelectionType.MULTIPLE,
         modules=["forsys", "map"],
     )
 

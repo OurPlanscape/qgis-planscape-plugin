@@ -6,7 +6,7 @@ from typing import Any
 from planscape.api.exceptions import DatasetPayloadError
 from planscape.models.domain.category import Category
 from planscape.models.domain.datalayer import DataLayer
-from planscape.models.domain.dataset import Dataset
+from planscape.models.domain.dataset import Dataset, DatasetPreferredDisplayType, DatasetSelectionType
 from planscape.models.domain.workspace import WorkspaceVisibility
 
 
@@ -15,6 +15,8 @@ class CreateDatasetRequest:
     workspace_id: int | str
     name: str
     visibility: WorkspaceVisibility = WorkspaceVisibility.PRIVATE
+    preferred_display_type: DatasetPreferredDisplayType = DatasetPreferredDisplayType.MAIN_DATALAYERS
+    selection_type: DatasetSelectionType = DatasetSelectionType.SINGLE
     organization: int | None = None
     version: str | None = None
     modules: list[str] = field(default_factory=lambda: ["map", "forsys", "prioritize_sub_units"])
@@ -24,6 +26,8 @@ class CreateDatasetRequest:
             "workspace_id": self.workspace_id,
             "name": self.name,
             "visibility": self.visibility.value,
+            "preferred_display_type": self.preferred_display_type.value,
+            "selection_type": self.selection_type.value,
             "modules": list(self.modules),
         }
         if self.organization is not None:
@@ -37,6 +41,8 @@ class CreateDatasetRequest:
 class UpdateDatasetRequest:
     name: str | None = None
     visibility: WorkspaceVisibility | None = None
+    preferred_display_type: DatasetPreferredDisplayType | None = None
+    selection_type: DatasetSelectionType | None = None
     modules: list[str] | None = None
 
     def to_dict(self) -> dict[str, object]:
@@ -45,6 +51,10 @@ class UpdateDatasetRequest:
             payload["name"] = self.name
         if self.visibility is not None:
             payload["visibility"] = self.visibility.value
+        if self.preferred_display_type is not None:
+            payload["preferred_display_type"] = self.preferred_display_type.value
+        if self.selection_type is not None:
+            payload["selection_type"] = self.selection_type.value
         if self.modules is not None:
             payload["modules"] = list(self.modules)
         return payload
@@ -54,6 +64,8 @@ class UpdateDatasetRequest:
 class DatasetResponse:
     name: str
     visibility: WorkspaceVisibility = WorkspaceVisibility.PRIVATE
+    preferred_display_type: DatasetPreferredDisplayType = DatasetPreferredDisplayType.MAIN_DATALAYERS
+    selection_type: DatasetSelectionType = DatasetSelectionType.SINGLE
     id: int | None = None
     modules: list[str] = field(default_factory=list)
 
@@ -63,11 +75,22 @@ class DatasetResponse:
             id=_optional_int(payload.get("id"), "id"),
             name=_required_string(payload.get("name"), "name"),
             visibility=_visibility(payload.get("visibility", WorkspaceVisibility.PRIVATE.value)),
+            preferred_display_type=_preferred_display_type(
+                payload.get("preferred_display_type", DatasetPreferredDisplayType.MAIN_DATALAYERS.value)
+            ),
+            selection_type=_selection_type(payload.get("selection_type", DatasetSelectionType.SINGLE.value)),
             modules=_modules_to_list(payload.get("modules")),
         )
 
     def to_domain(self) -> Dataset:
-        return Dataset(id=self.id, name=self.name, visibility=self.visibility, modules=self.modules)
+        return Dataset(
+            id=self.id,
+            name=self.name,
+            visibility=self.visibility,
+            preferred_display_type=self.preferred_display_type,
+            selection_type=self.selection_type,
+            modules=self.modules,
+        )
 
 
 @dataclass(frozen=True)
@@ -210,6 +233,32 @@ def _visibility(value: Any) -> WorkspaceVisibility:
             message = f"Unsupported dataset visibility: {value}"
             raise DatasetPayloadError(message) from exc
     message = "visibility must be a string."
+    raise DatasetPayloadError(message)
+
+
+def _preferred_display_type(value: Any) -> DatasetPreferredDisplayType:
+    if isinstance(value, DatasetPreferredDisplayType):
+        return value
+    if isinstance(value, str):
+        try:
+            return DatasetPreferredDisplayType(value)
+        except ValueError as exc:
+            message = f"Unsupported dataset preferred_display_type: {value}"
+            raise DatasetPayloadError(message) from exc
+    message = "preferred_display_type must be a string."
+    raise DatasetPayloadError(message)
+
+
+def _selection_type(value: Any) -> DatasetSelectionType:
+    if isinstance(value, DatasetSelectionType):
+        return value
+    if isinstance(value, str):
+        try:
+            return DatasetSelectionType(value)
+        except ValueError as exc:
+            message = f"Unsupported dataset selection_type: {value}"
+            raise DatasetPayloadError(message) from exc
+    message = "selection_type must be a string."
     raise DatasetPayloadError(message)
 
 
