@@ -11,6 +11,8 @@ from planscape.models.domain import (
     DataLayerCollection,
     Dataset,
     DatasetCollection,
+    DatasetPreferredDisplayType,
+    DatasetSelectionType,
     LoginNode,
     NodeKind,
     Server,
@@ -1185,6 +1187,12 @@ def test_planscape_dock_add_dataset_creates_dataset_and_refreshes(qgis_app, monk
         def dataset_visibility(self):
             return "public"
 
+        def dataset_preferred_display_type(self):
+            return "BASE_DATALAYERS"
+
+        def dataset_selection_type(self):
+            return "MULTIPLE"
+
         def dataset_organization(self):
             return 3
 
@@ -1231,6 +1239,8 @@ def test_planscape_dock_add_dataset_creates_dataset_and_refreshes(qgis_app, monk
         "workspace_id": 7,
         "name": "New Dataset",
         "visibility": "PUBLIC",
+        "preferred_display_type": "BASE_DATALAYERS",
+        "selection_type": "MULTIPLE",
         "modules": ["forsys", "map"],
         "organization": 3,
         "version": "2026.1",
@@ -1247,11 +1257,23 @@ def test_planscape_dock_update_dataset_prefills_dataset_dialog(qgis_app, monkeyp
     captured = {}
 
     class FakeDialog:
-        def __init__(self, parent=None, *, dataset_id="", name="", visibility="private", modules=None):
+        def __init__(
+            self,
+            parent=None,
+            *,
+            dataset_id="",
+            name="",
+            visibility="private",
+            preferred_display_type="MAIN_DATALAYERS",
+            selection_type="SINGLE",
+            modules=None,
+        ):
             del parent
             captured["dataset_id"] = dataset_id
             captured["name"] = name
             captured["visibility"] = visibility
+            captured["preferred_display_type"] = preferred_display_type
+            captured["selection_type"] = selection_type
             captured["modules"] = modules
 
         def exec(self):
@@ -1260,7 +1282,14 @@ def test_planscape_dock_update_dataset_prefills_dataset_dialog(qgis_app, monkeyp
     monkeypatch.setattr("planscape.gui.commands.dataset.DatasetDialog", FakeDialog)
 
     dock = PlanscapeDockWidget()
-    dataset = Dataset(id=20, name="Base Data", visibility=WorkspaceVisibility.PUBLIC, modules=["map", "forsys"])
+    dataset = Dataset(
+        id=20,
+        name="Base Data",
+        visibility=WorkspaceVisibility.PUBLIC,
+        preferred_display_type=DatasetPreferredDisplayType.BASE_DATALAYERS,
+        selection_type=DatasetSelectionType.MULTIPLE,
+        modules=["map", "forsys"],
+    )
     item = model_item(dataset)
 
     edit_action = action_by_text(behavior_for(dataset).actions(dataset, dock._context(), item), "Edit")
@@ -1270,6 +1299,8 @@ def test_planscape_dock_update_dataset_prefills_dataset_dialog(qgis_app, monkeyp
         "dataset_id": "20",
         "name": "Base Data",
         "visibility": "public",
+        "preferred_display_type": "BASE_DATALAYERS",
+        "selection_type": "MULTIPLE",
         "modules": ["map", "forsys"],
     }
 
@@ -1280,8 +1311,18 @@ def test_planscape_dock_update_dataset_updates_dataset_via_api(qgis_app, monkeyp
     captured = {}
 
     class FakeDialog:
-        def __init__(self, parent=None, *, dataset_id="", name="", visibility="private", modules=None):
-            del parent, dataset_id, name, visibility, modules
+        def __init__(
+            self,
+            parent=None,
+            *,
+            dataset_id="",
+            name="",
+            visibility="private",
+            preferred_display_type="MAIN_DATALAYERS",
+            selection_type="SINGLE",
+            modules=None,
+        ):
+            del parent, dataset_id, name, visibility, preferred_display_type, selection_type, modules
 
         def exec(self):
             return 1
@@ -1291,6 +1332,12 @@ def test_planscape_dock_update_dataset_updates_dataset_via_api(qgis_app, monkeyp
 
         def dataset_visibility(self):
             return "private"
+
+        def dataset_preferred_display_type(self):
+            return "MAIN_DATALAYERS"
+
+        def dataset_selection_type(self):
+            return "SINGLE"
 
         def dataset_modules(self):
             return ["map", "prioritize_sub_units"]
@@ -1328,6 +1375,8 @@ def test_planscape_dock_update_dataset_updates_dataset_via_api(qgis_app, monkeyp
     assert captured["request"].to_dict() == {
         "name": "Updated Data",
         "visibility": "PRIVATE",
+        "preferred_display_type": "MAIN_DATALAYERS",
+        "selection_type": "SINGLE",
         "modules": ["map", "prioritize_sub_units"],
     }
     assert item.text(0) == "Updated Data"
@@ -1345,11 +1394,23 @@ def test_planscape_dock_double_click_dataset_opens_dataset_dialog(qgis_app, monk
     captured = {}
 
     class FakeDialog:
-        def __init__(self, parent=None, *, dataset_id="", name="", visibility="private", modules=None):
+        def __init__(
+            self,
+            parent=None,
+            *,
+            dataset_id="",
+            name="",
+            visibility="private",
+            preferred_display_type="MAIN_DATALAYERS",
+            selection_type="SINGLE",
+            modules=None,
+        ):
             del parent
             captured["dataset_id"] = dataset_id
             captured["name"] = name
             captured["visibility"] = visibility
+            captured["preferred_display_type"] = preferred_display_type
+            captured["selection_type"] = selection_type
             captured["modules"] = modules
 
         def exec(self):
@@ -1363,7 +1424,14 @@ def test_planscape_dock_double_click_dataset_opens_dataset_dialog(qgis_app, monk
 
     dock._handle_item_double_clicked(item, 0)
 
-    assert captured == {"dataset_id": "20", "name": "Base Data", "visibility": "public", "modules": ["map"]}
+    assert captured == {
+        "dataset_id": "20",
+        "name": "Base Data",
+        "visibility": "public",
+        "preferred_display_type": "MAIN_DATALAYERS",
+        "selection_type": "SINGLE",
+        "modules": ["map"],
+    }
 
 
 def test_planscape_dock_root_context_menu_has_auth_actions_in_order(qgis_app, monkeypatch):

@@ -10,7 +10,15 @@ from planscape.models.api.workspace import (
     WorkspaceStyleListResponse,
     WorkspaceUserAccessListResponse,
 )
-from planscape.models.domain import Dataset, Style, User, Workspace, WorkspaceVisibility
+from planscape.models.domain import (
+    Dataset,
+    DatasetPreferredDisplayType,
+    DatasetSelectionType,
+    Style,
+    User,
+    Workspace,
+    WorkspaceVisibility,
+)
 
 
 def test_create_workspace_request_serializes_payload():
@@ -114,11 +122,27 @@ def test_paginated_workspace_response_rejects_invalid_results_shape():
 
 def test_workspace_dataset_list_response_parses_raw_list():
     response = WorkspaceDatasetListResponse.from_list(
-        [{"id": 20, "name": "Base Data", "visibility": "PUBLIC", "modules": ["map", "forsys"]}]
+        [
+            {
+                "id": 20,
+                "name": "Base Data",
+                "visibility": "PUBLIC",
+                "preferred_display_type": "BASE_DATALAYERS",
+                "selection_type": "MULTIPLE",
+                "modules": ["map", "forsys"],
+            }
+        ]
     )
 
     assert response.to_domain() == [
-        Dataset(id=20, name="Base Data", visibility=WorkspaceVisibility.PUBLIC, modules=["map", "forsys"])
+        Dataset(
+            id=20,
+            name="Base Data",
+            visibility=WorkspaceVisibility.PUBLIC,
+            preferred_display_type=DatasetPreferredDisplayType.BASE_DATALAYERS,
+            selection_type=DatasetSelectionType.MULTIPLE,
+            modules=["map", "forsys"],
+        )
     ]
 
 

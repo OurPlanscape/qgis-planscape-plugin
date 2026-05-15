@@ -34,6 +34,8 @@ def test_create_dataset_request_calls_post_with_admin_dataset_url(monkeypatch):
             "workspace_id": 7,
             "name": "Base Data",
             "visibility": "PRIVATE",
+            "preferred_display_type": "MAIN_DATALAYERS",
+            "selection_type": "SINGLE",
             "modules": ["map", "forsys", "prioritize_sub_units"],
         },
     }
