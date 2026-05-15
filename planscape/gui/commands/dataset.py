@@ -9,6 +9,7 @@ from planscape.api.dataset import create_dataset_request, update_dataset_request
 from planscape.api.exceptions import DatasetAPIError
 from planscape.gui.dataset_dialog import DatasetDialog
 from planscape.models.api.dataset import CreateDatasetRequest, UpdateDatasetRequest
+from planscape.models.domain.dataset import DatasetPreferredDisplayType, DatasetSelectionType
 from planscape.models.domain.workspace import WorkspaceVisibility
 
 if TYPE_CHECKING:
@@ -27,6 +28,8 @@ def create_dataset(context: DockContext, item: QTreeWidgetItem, workspace_id: in
         workspace_id=workspace_id,
         name=dialog.dataset_name(),
         visibility=WorkspaceVisibility(dialog.dataset_visibility().upper()),
+        preferred_display_type=DatasetPreferredDisplayType(dialog.dataset_preferred_display_type()),
+        selection_type=DatasetSelectionType(dialog.dataset_selection_type()),
         organization=dialog.dataset_organization(),
         version=dialog.dataset_version(),
         modules=dialog.dataset_modules(),
@@ -54,6 +57,8 @@ def update_dataset(dataset: Dataset, context: DockContext, item: QTreeWidgetItem
         dataset_id=str(dataset.id),
         name=dataset.name,
         visibility=dataset.visibility.value.lower(),
+        preferred_display_type=dataset.preferred_display_type.value,
+        selection_type=dataset.selection_type.value,
         modules=dataset.modules,
     )
     if not dialog.exec():
@@ -62,6 +67,8 @@ def update_dataset(dataset: Dataset, context: DockContext, item: QTreeWidgetItem
     request = UpdateDatasetRequest(
         name=dialog.dataset_name(),
         visibility=WorkspaceVisibility(dialog.dataset_visibility().upper()),
+        preferred_display_type=DatasetPreferredDisplayType(dialog.dataset_preferred_display_type()),
+        selection_type=DatasetSelectionType(dialog.dataset_selection_type()),
         modules=dialog.dataset_modules(),
     )
     try:

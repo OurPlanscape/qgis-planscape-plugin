@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>420</width>
-     <height>270</height>
+     <height>330</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -54,44 +54,64 @@
       <item row="2" column="1">
        <widget class="QComboBox" name="visibility_combo"/>
       </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="organization_label">
-        <property name="text">
-         <string>Organization</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QLineEdit" name="organization_input">
-        <property name="placeholderText">
-         <string>Optional organization id</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="version_label">
-        <property name="text">
-         <string>Version</string>
-        </property>
-       </widget>
-      </item>
-      <item row="4" column="1">
-       <widget class="QLineEdit" name="version_input">
-        <property name="placeholderText">
-         <string>Optional version</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0">
-       <widget class="QLabel" name="modules_label">
-        <property name="text">
-         <string>Modules</string>
+       <item row="3" column="0">
+        <widget class="QLabel" name="preferred_display_type_label">
+         <property name="text">
+          <string>Preferred display type</string>
+         </property>
+        </widget>
+       </item>
+       <item row="3" column="1">
+        <widget class="QComboBox" name="preferred_display_type_combo"/>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="selection_type_label">
+         <property name="text">
+          <string>Selection type</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1">
+        <widget class="QComboBox" name="selection_type_combo"/>
+       </item>
+       <item row="5" column="0">
+        <widget class="QLabel" name="organization_label">
+         <property name="text">
+          <string>Organization</string>
         </property>
        </widget>
       </item>
        <item row="5" column="1">
-        <widget class="QListWidget" name="modules_input"/>
-       </item>
+        <widget class="QLineEdit" name="organization_input">
+         <property name="placeholderText">
+          <string>Optional organization id</string>
+        </property>
+       </widget>
+      </item>
+       <item row="6" column="0">
+        <widget class="QLabel" name="version_label">
+         <property name="text">
+          <string>Version</string>
+        </property>
+       </widget>
+      </item>
+       <item row="6" column="1">
+        <widget class="QLineEdit" name="version_input">
+         <property name="placeholderText">
+          <string>Optional version</string>
+        </property>
+       </widget>
+      </item>
+       <item row="7" column="0">
+        <widget class="QLabel" name="modules_label">
+         <property name="text">
+          <string>Modules</string>
+        </property>
+       </widget>
+      </item>
+        <item row="7" column="1">
+         <widget class="QListWidget" name="modules_input"/>
+        </item>
      </layout>
    </item>
    <item>

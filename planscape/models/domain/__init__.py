@@ -5,7 +5,7 @@ from planscape.models.domain.category import Category
 from planscape.models.domain.category_collection import CategoryCollection
 from planscape.models.domain.datalayer import DataLayer
 from planscape.models.domain.datalayer_collection import DataLayerCollection
-from planscape.models.domain.dataset import Dataset
+from planscape.models.domain.dataset import Dataset, DatasetPreferredDisplayType, DatasetSelectionType
 from planscape.models.domain.dataset_collection import DatasetCollection
 from planscape.models.domain.login_node import LoginNode
 from planscape.models.domain.model import Model
@@ -26,6 +26,8 @@ __all__ = [
     "DataLayer",
     "DataLayerCollection",
     "Dataset",
+    "DatasetPreferredDisplayType",
+    "DatasetSelectionType",
     "DatasetCollection",
     "LoginNode",
     "Model",
